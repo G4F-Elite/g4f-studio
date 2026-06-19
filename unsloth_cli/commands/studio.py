@@ -666,7 +666,9 @@ def studio_default(
     cloudflare: bool = typer.Option(
         True,
         "--cloudflare/--no-cloudflare",
-        help = "Auto-create a free Cloudflare HTTPS tunnel when bound to 0.0.0.0 (default on).",
+        help = "Auto-create a free Cloudflare HTTPS tunnel when bound to 0.0.0.0, exposing "
+        "Studio on a PUBLIC internet URL (default on). Pass --no-cloudflare to keep Studio "
+        "on the local network only; the startup banner always states whether it is on or off.",
     ),
     secure: bool = typer.Option(
         False,
@@ -1030,7 +1032,9 @@ def run(
     cloudflare: bool = typer.Option(
         True,
         "--cloudflare/--no-cloudflare",
-        help = "Auto-create a free Cloudflare HTTPS tunnel when bound to 0.0.0.0 (default on).",
+        help = "Auto-create a free Cloudflare HTTPS tunnel when bound to 0.0.0.0, exposing "
+        "Studio on a PUBLIC internet URL (default on). Pass --no-cloudflare to keep Studio "
+        "on the local network only; the startup banner always states whether it is on or off.",
     ),
     secure: bool = typer.Option(
         False,
