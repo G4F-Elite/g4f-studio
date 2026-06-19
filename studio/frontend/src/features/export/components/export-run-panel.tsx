@@ -30,7 +30,6 @@ import { useEffect, useRef, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { EXPORT_METHODS, type ExportMethod } from "../constants";
 import type { ExportLogEntry } from "../api/export-api";
-import { getExportLogLineClass } from "../lib/log-style";
 import {
   selectExportProgressPercent,
   useExportRuntimeStore,
@@ -521,16 +520,22 @@ export function ExportRunPanel(props: ExportRunPanelProps) {
                     </span>
                   </div>
                 ) : (
-                  <div className="whitespace-pre-wrap break-words">
+                  <pre className="whitespace-pre-wrap break-words">
                     {run.logLines.map((entry, idx) => (
                       <div
                         key={idx}
-                        className={getExportLogLineClass(entry)}
+                        className={
+                          entry.stream === "stderr"
+                            ? "text-rose-300/90"
+                            : entry.stream === "status"
+                              ? "text-sky-300/90"
+                              : ""
+                        }
                       >
                         {formatLogLine(entry)}
                       </div>
                     ))}
-                  </div>
+                  </pre>
                 )}
               </div>
             </div>

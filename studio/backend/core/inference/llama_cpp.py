@@ -235,14 +235,6 @@ _MAX_REPROMPTS = 1
 # enough for reasoning-heavy GGUFs and max_tokens-omitting API clients.
 _DEFAULT_MAX_TOKENS_FLOOR = 32768
 _DEFAULT_FIRST_TOKEN_TIMEOUT_S = 1200.0  # 20 min
-
-# A streamed tool call only surfaces an early "provisional" tool card once its
-# accumulated arguments exceed this many characters (render_html is exempt and
-# always surfaces). Small-argument tools (e.g. a web_search query) finish
-# streaming well under this, so they keep their existing behavior; only large
-# payloads (a full HTML/code file) -- whose token-by-token generation can take
-# tens of seconds -- get an immediate card so the UI never looks frozen.
-_PROVISIONAL_ARGS_MIN_CHARS = 256
 _DEFAULT_STREAM_STALL_TIMEOUT_S = 120.0  # 2 min
 _REPROMPT_MAX_CHARS = 2000
 _FORCED_REPEAT_PLAN_SIGNAL = re.compile(
@@ -857,23 +849,6 @@ def _auto_mode_drops_mtp(
     if has_separate_drafter:
         return False
     return req_mode == "auto" and size_b is not None and size_b < _MTP_MIN_SIZE_B
-
-
-def _mla_mtp_auto_enabled() -> bool:
-    """Whether Auto may pick embedded MTP for an MLA model (GLM-5.2/DeepSeek/Kimi).
-
-    Off by default: llama.cpp's MLA/DSA MTP path keeps a duplicated full target-KV
-    context and recomputes the sparse-attention indexer every draft step, so it runs
-    ~2x slower than no speculation (GLM-5.2 bench: 27 vs 45 tok/s, flat across draft
-    depth and 96-100% acceptance) -- the opposite of the vLLM/SGLang speedup on the
-    same model. Set UNSLOTH_MLA_MTP_ENABLED=1 to let Auto promote MLA MTP again once
-    that path is optimized upstream. Forced mtp / mtp+ngram ignore this gate."""
-    return os.environ.get("UNSLOTH_MLA_MTP_ENABLED", "0").strip().lower() in (
-        "1",
-        "true",
-        "yes",
-        "on",
-    )
 
 
 def _extra_args_set_spec_type(extra_args: Optional[Iterable[str]]) -> bool:
@@ -2848,16 +2823,12 @@ class LlamaCppBackend:
         drafter_path: Optional[str] = None,
         draft_weights_bytes: int = 0,
         n_parallel: int = 1,
-        mtp_keeps_target_ctx: bool = True,
     ) -> Optional[int]:
         """MTP draft reserve at ``n_ctx`` = draft KV (grows with ctx) + separate-
-        drafter weights + (MTP + MLA only) a duplicated target KV context. The
-        verify buffer rides in the ctx-fit headroom (no tuned constant). None when
-        the draft KV can't be sized (caller keeps the flat fallback).
-        ``draft_weights_bytes`` is the drafter file size (0 for embedded).
-        ``mtp_keeps_target_ctx`` is True for MTP draft modes (which keep the
-        duplicated target context) and False for separate-drafter spec modes
-        (draft-simple/draft-eagle3), which do not."""
+        drafter weights + (MLA only) a duplicated target KV context. The verify
+        buffer rides in the ctx-fit headroom (no tuned constant). None when the
+        draft KV can't be sized (caller keeps the flat fallback).
+        ``draft_weights_bytes`` is the drafter file size (0 for embedded)."""
         draft_kv = self._mtp_draft_kv_bytes(
             n_ctx,
             drafter_path = drafter_path,
@@ -2866,19 +2837,16 @@ class LlamaCppBackend:
             n_parallel = n_parallel,
         )
         weights = max(0, draft_weights_bytes)
-        # MLA models (GLM-5.x, DeepSeek, Kimi-K2) under MTP keep a *second* full copy
-        # of the target model's KV context for draft verification -- llama.cpp's
+        # MLA models (GLM-5.x, DeepSeek, Kimi-K2) keep a *second* full copy of the
+        # target model's KV context for MTP draft verification -- llama.cpp's
         # `ctx_tgt=yes` -- allocated at f16 regardless of the main cache type. It is
         # ~the main KV again and dwarfs the embedded draft head (GLM-5.2 @ 1M ctx:
         # a ~2 GiB head next to a ~89 GiB target copy), so omitting it lets auto-fit
         # pick a context that fits on paper but OOMs cublasCreate at the first
-        # decode. Gated on both MLA (kv_lora_rank present) and the engaged mode
-        # actually being MTP: non-MLA MTP (Qwen/Gemma) keeps no such copy, and the
-        # separate-drafter spec modes (draft-simple/draft-eagle3) load a small
-        # distinct drafter with its own KV -- already counted in draft_kv/weights --
-        # rather than duplicating the target, so they must not be charged for it.
+        # decode. Non-MLA MTP (Qwen/Gemma) keeps no such copy, so this is gated
+        # strictly on MLA (kv_lora_rank present) and leaves those models unchanged.
         target_ctx_copy = 0
-        if mtp_keeps_target_ctx and self._kv_lora_rank is not None:
+        if self._kv_lora_rank is not None:
             target_ctx_copy = self._estimate_kv_cache_bytes(n_ctx, "f16", n_parallel = n_parallel)
         if draft_kv is None:
             # KV unsized (exotic/remote drafter): still reserve known weights + any
@@ -4850,31 +4818,25 @@ class LlamaCppBackend:
                         except Exception:
                             _mtp_binary_ok = False
                             _mtp_probe_raised = True
-                    _auto_studio_mtp = (
-                        not _extra_args_set_spec_type(extra_args)
-                        and _mtp_model_for_fit
-                        and (
-                            _mtp_effective in ("mtp", "mtp+ngram")
-                            or (_mtp_effective == "auto" and not _mtp_sub_3b_for_fit)
-                        )
-                        and (
-                            _mtp_binary_ok
-                            # Reserve on a raised (uncached) probe too: it re-probes in
-                            # _build_speculative_flags and may still engage MTP (embedded
-                            # head or separate drafter -- _mtp_model_for_fit covers both).
-                            or _mtp_probe_raised
-                        )
-                    )
                     _mtp_will_engage = bool(
-                        _user_mtp_via_extras or _user_draft_via_extras or _auto_studio_mtp
+                        _user_mtp_via_extras
+                        or _user_draft_via_extras
+                        or (
+                            not _extra_args_set_spec_type(extra_args)
+                            and _mtp_model_for_fit
+                            and (
+                                _mtp_effective in ("mtp", "mtp+ngram")
+                                or (_mtp_effective == "auto" and not _mtp_sub_3b_for_fit)
+                            )
+                            and (
+                                _mtp_binary_ok
+                                # Reserve on a raised (uncached) probe too: it re-probes in
+                                # _build_speculative_flags and may still engage MTP (embedded
+                                # head or separate drafter -- _mtp_model_for_fit covers both).
+                                or _mtp_probe_raised
+                            )
+                        )
                     )
-                    # The duplicated full target-KV copy (ctx_tgt) is an MTP-only
-                    # cost: the MTP head runs a second context over the target
-                    # model's own KV geometry. The separate-drafter spec modes
-                    # (draft-simple/draft-eagle3, reached via _user_draft_via_extras)
-                    # load a small distinct drafter with its own KV and keep no such
-                    # copy, so only charge it when the engaged mode is truly MTP.
-                    _engaged_is_mtp = bool(_user_mtp_via_extras or _auto_studio_mtp)
 
                     # Effective draft depth: extras win (last-wins at launch), else
                     # the field, else the platform default (2 GPU / 3 CPU).
@@ -4943,7 +4905,6 @@ class LlamaCppBackend:
                                 drafter_path = _mtp_draft_for_budget,
                                 draft_weights_bytes = _mtp_draft_weights,
                                 n_parallel = n_parallel,
-                                mtp_keeps_target_ctx = _engaged_is_mtp,
                             )
                             is not None
                         ):
@@ -4959,7 +4920,6 @@ class LlamaCppBackend:
                                 _dp: Optional[str] = _mtp_draft_for_budget,
                                 _w: int = _mtp_draft_weights,
                                 _np: int = n_parallel,
-                                _mtp: bool = _engaged_is_mtp,
                             ) -> int:
                                 v = self._estimate_mtp_overhead_bytes(
                                     ctx,
@@ -4969,7 +4929,6 @@ class LlamaCppBackend:
                                     drafter_path = _dp,
                                     draft_weights_bytes = _w,
                                     n_parallel = _np,
-                                    mtp_keeps_target_ctx = _mtp,
                                 )
                                 return v if v is not None else 0
 
@@ -6210,17 +6169,6 @@ class LlamaCppBackend:
         _mtp_too_small = (
             _mtp_size_b is not None and _mtp_size_b < _MTP_MIN_SIZE_B and not bool(mtp_draft_path)
         )
-        # Embedded MTP head on an MLA model (GLM-5.2/DeepSeek/Kimi, detected by
-        # kv_lora_rank): llama.cpp's MLA/DSA MTP path is ~2x slower than no spec,
-        # so Auto drops it (override via the Settings dropdown / forced mtp, or
-        # UNSLOTH_MLA_MTP_ENABLED=1). Separate drafters (Gemma, mtp_draft_path) and
-        # non-MLA embedded heads (Qwen, no kv_lora_rank) are unaffected.
-        _auto_mla_embedded_mtp = (
-            bool(self._nextn_predict_layers)
-            and self._kv_lora_rank is not None
-            and not bool(mtp_draft_path)
-            and not _mla_mtp_auto_enabled()
-        )
 
         if user_owns_spec_type:
             # User --spec-type wins outright; suppress auto-emit to avoid a
@@ -6364,30 +6312,7 @@ class LlamaCppBackend:
 
         # effective_mode == "auto": the promotion path. llama.cpp #22673:
         # MTP is compatible with mmproj, so there's no vision gate.
-        if _auto_mla_embedded_mtp:
-            # MLA embedded-MTP (GLM-5.2 et al.): the MTP path regresses vs spec-off
-            # on llama.cpp today, so Auto drops it and falls back to ngram-mod (or
-            # spec-off if unsupported), mirroring the sub-3B branch. Forced mtp /
-            # mtp+ngram (handled above) still engage; UNSLOTH_MLA_MTP_ENABLED=1
-            # re-enables this promotion once upstream optimizes the path.
-            self._spec_fallback_reason = "mla_mtp_disabled"
-            _mla_caps = self.probe_server_capabilities(binary)
-            if _mla_caps.get("supports_ngram_mod"):
-                logger.info(
-                    "Auto: MLA embedded-MTP model detected; llama.cpp's MLA/DSA "
-                    "MTP path is slower than no speculation, so using ngram-mod "
-                    "instead. Override via the Studio Speculative Decoding "
-                    "dropdown or UNSLOTH_MLA_MTP_ENABLED=1."
-                )
-                _emit_ngram_mod()
-            else:
-                logger.info(
-                    "Auto: MLA embedded-MTP model detected; disabling speculative "
-                    "decoding (this llama-server does not advertise ngram-mod). "
-                    "Override via the dropdown or UNSLOTH_MLA_MTP_ENABLED=1."
-                )
-                # spec-off: emit nothing, mirroring the sub-3B no-ngram path.
-        elif is_mtp_model and not _mtp_too_small:
+        if is_mtp_model and not _mtp_too_small:
             # GPU: MTP-only. CPU/Mac: chain ngram-mod + MTP.
             _emit_mtp(chain_ngram = not gpus)
         elif is_mtp_model and _mtp_too_small:
@@ -7898,12 +7823,7 @@ class LlamaCppBackend:
                 _iter_finish_reason = None
                 _stream_done = False
                 _last_emitted = ""
-                # tool_call_id -> tool_name for every call we surfaced an early
-                # "provisional" tool_start card for. Generalizes the former
-                # render_html-only set so ANY enabled tool shows immediate
-                # progress while its arguments stream. Reconciled downstream by id.
-                provisional_started_tool_calls: dict[str, str] = {}
-                resolved_provisional_tool_call_ids: set[str] = set()
+                provisional_render_html_tool_call_ids = set()
                 _suppress_visible_output = _forced_tool_call_pending
 
                 stream_timeout = httpx.Timeout(
@@ -8027,93 +7947,29 @@ class LlamaCppBackend:
                                             fallback_id = f"call_{idx}"
                                             current_id = tool_calls_acc[idx].get("id", fallback_id)
                                             already_started = (
-                                                current_id in provisional_started_tool_calls
+                                                current_id in provisional_render_html_tool_call_ids
                                             )
-                                            # Require a non-empty explicit id distinct from the
-                                            # synthetic fallback. llama.cpp can stream tool calls
-                                            # with an empty id (ggml-org/llama.cpp#11992); emitting
-                                            # a provisional card keyed by "" would not reconcile
-                                            # with the real tool_start (the frontend mints its own
-                                            # id per event), leaving a duplicate/dangling card.
-                                            has_real_id = (
-                                                bool(current_id) and current_id != fallback_id
-                                            )
-                                            # Surface an early provisional tool_start
-                                            # for ANY enabled tool the model starts
-                                            # calling, not just render_html, so the UI
-                                            # shows a live tool card while a long
-                                            # arguments payload (e.g. a full HTML/code
-                                            # file) streams instead of a frozen
-                                            # "Generating..." with zero progress.
-                                            # Guards: emit once per tool_call_id; wait
-                                            # for a real id so it reconciles with the
-                                            # real tool_start emitted downstream; never
-                                            # re-surface a one-shot tool that already
-                                            # succeeded (preserves render_html).
-                                            _is_completed_one_shot = (
-                                                current_name == "render_html"
-                                                and _tool_succeeded("render_html")
-                                            )
-                                            # render_html is one-shot: never surface a
-                                            # second provisional for it in the same turn
-                                            # (the duplicate is a downstream no-op).
-                                            _one_shot_already_provisional = (
-                                                current_name == "render_html"
-                                                and "render_html"
-                                                in provisional_started_tool_calls.values()
-                                            )
-                                            # Surface a card for the first streamed call,
-                                            # and for later parallel calls only when
-                                            # parallel execution is enabled (when
-                                            # disable_parallel_tool_use is set the
-                                            # downstream truncates to the first call, so a
-                                            # card for idx >= 1 could never be reconciled).
-                                            # Also skip when human confirmation is required
-                                            # -- the real tool_start there is keyed by
-                                            # approval id (awaiting_confirmation), so an
-                                            # early card keyed by tool_call_id would not
-                                            # merge and would show "running" before the
-                                            # user approves.
-                                            _confirm_gated = (
-                                                confirm_tool_calls and not bypass_permissions
-                                            )
-                                            # render_html always surfaces a card (its
-                                            # payload is an artifact we want shown); every
-                                            # other tool only once its arguments have
-                                            # grown past a threshold, so small-argument
-                                            # tools (e.g. a web_search query) keep their
-                                            # existing no-early-card behavior and we only
-                                            # pay a provisional card for genuinely large
-                                            # payloads (a full HTML/code file) whose
-                                            # generation would otherwise freeze the UI.
-                                            _args_len = len(
-                                                tool_calls_acc[idx]["function"].get("arguments", "")
-                                            )
-                                            _payload_is_large = (
-                                                current_name == "render_html"
-                                                or _args_len >= _PROVISIONAL_ARGS_MIN_CHARS
-                                            )
+                                            has_real_id = current_id != fallback_id
                                             if (
-                                                current_name
-                                                and (idx == 0 or not disable_parallel_tool_use)
-                                                and has_real_id
-                                                and not already_started
-                                                and not _is_completed_one_shot
-                                                and not _one_shot_already_provisional
-                                                and not _confirm_gated
-                                                and _payload_is_large
+                                                current_name == "render_html"
+                                                and not _tool_succeeded("render_html")
                                                 and any(
-                                                    (tool.get("function") or {}).get("name")
-                                                    == current_name
+                                                    (
+                                                        (tool.get("function") or {}).get("name")
+                                                        == "render_html"
+                                                    )
                                                     for tool in active_tools
                                                 )
+                                                and not already_started
+                                                and not provisional_render_html_tool_call_ids
+                                                and has_real_id
                                             ):
-                                                provisional_started_tool_calls[current_id] = (
-                                                    current_name
+                                                provisional_render_html_tool_call_ids.add(
+                                                    current_id
                                                 )
                                                 yield {
                                                     "type": "tool_start",
-                                                    "tool_name": current_name,
+                                                    "tool_name": "render_html",
                                                     "tool_call_id": current_id,
                                                     "arguments": {},
                                                     "provenance": tool_event_provenance(
@@ -8491,30 +8347,20 @@ class LlamaCppBackend:
                 for tc in tool_calls or []:
                     func = tc.get("function", {})
                     tool_name = func.get("name", "")
-                    provisional_match = tc.get("id") in provisional_started_tool_calls
+                    provisional_render_html_match = (
+                        tool_name == "render_html"
+                        and tc.get("id") in provisional_render_html_tool_call_ids
+                    )
                     decision = tool_controller.prepare_call(
                         tc,
                         forced = _forced_tool_call_pending,
-                        provisional = provisional_match,
+                        provisional = provisional_render_html_match,
                     )
 
                     if not decision.should_execute:
                         if content_text and not assistant_appended:
                             conversation.append(assistant_msg)
                             assistant_appended = True
-                        if provisional_match:
-                            # A provisional tool card is already on screen for this
-                            # id; close it so it never dangles when the controller
-                            # turns the call into an internal no-op (duplicate /
-                            # disabled / render_html_repeat).
-                            resolved_provisional_tool_call_ids.add(decision.tool_call_id)
-                            yield {
-                                "type": "tool_end",
-                                "tool_name": decision.tool_name,
-                                "tool_call_id": decision.tool_call_id,
-                                "result": "",
-                                "provenance": decision.provenance,
-                            }
                         completion = tool_controller.record_noop(decision)
                         conversation.append(completion.model_message())
                         if _forced_tool_call_pending:
@@ -8559,7 +8405,6 @@ class LlamaCppBackend:
                             == "deny"
                         ):
                             decision_slot = None
-                            resolved_provisional_tool_call_ids.add(decision.tool_call_id)
                             yield {
                                 "type": "tool_end",
                                 "tool_name": decision.tool_name,
@@ -8603,27 +8448,11 @@ class LlamaCppBackend:
                         if decision.tool_name == "search_knowledge_base":
                             _kb_search_count += 1
                     completion = tool_controller.record_result(decision, result)
-                    resolved_provisional_tool_call_ids.add(decision.tool_call_id)
                     yield completion.tool_end_event()
                     conversation.append(completion.tool_message())
 
                     if _forced_tool_call_pending:
                         _forced_tool_call_pending = False
-
-                # Close any provisional tool card that streamed but was never
-                # executed or explicitly closed -- e.g. a parallel call dropped by
-                # disable_parallel_tool_use, or a no-op `break` before later calls
-                # were processed. Without this sweep the card would spin forever.
-                for _pid, _pname in provisional_started_tool_calls.items():
-                    if _pid not in resolved_provisional_tool_call_ids:
-                        resolved_provisional_tool_call_ids.add(_pid)
-                        yield {
-                            "type": "tool_end",
-                            "tool_name": _pname,
-                            "tool_call_id": _pid,
-                            "result": "",
-                            "provenance": tool_event_provenance(provisional = True),
-                        }
 
                 # Clear tool status badge before next generation/final pass.
                 yield {"type": "status", "text": ""}
@@ -8633,36 +8462,10 @@ class LlamaCppBackend:
                 continue
 
             except httpx.ConnectError:
-                # Close any provisional card that streamed but was not yet
-                # resolved before surfacing the error, so the UI never leaves a
-                # tool card spinning after the turn fails. Mark it as errored
-                # (not an empty success) so the card renders as failed.
-                for _pid, _pname in provisional_started_tool_calls.items():
-                    if _pid not in resolved_provisional_tool_call_ids:
-                        resolved_provisional_tool_call_ids.add(_pid)
-                        yield {
-                            "type": "tool_end",
-                            "tool_name": _pname,
-                            "tool_call_id": _pid,
-                            "result": "Error: lost connection to llama-server before the tool call completed.",
-                            "provenance": tool_event_provenance(provisional = True),
-                        }
                 raise RuntimeError("Lost connection to llama-server")
             except Exception as e:
                 if cancel_event is not None and cancel_event.is_set():
                     return
-                # Same provisional cleanup on any other mid-iteration failure,
-                # surfacing the card as errored rather than an empty success.
-                for _pid, _pname in provisional_started_tool_calls.items():
-                    if _pid not in resolved_provisional_tool_call_ids:
-                        resolved_provisional_tool_call_ids.add(_pid)
-                        yield {
-                            "type": "tool_end",
-                            "tool_name": _pname,
-                            "tool_call_id": _pid,
-                            "result": "Error: the tool call was interrupted before it completed.",
-                            "provenance": tool_event_provenance(provisional = True),
-                        }
                 raise
 
         # ── Tool iteration cap reached -- synthesize final answer ──
