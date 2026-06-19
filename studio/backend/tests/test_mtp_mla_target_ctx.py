@@ -172,6 +172,7 @@ class TestMlaTargetCtxReserve:
         ctx = 131072
         assert mla._estimate_mtp_overhead_bytes(ctx) > non._estimate_mtp_overhead_bytes(ctx)
 
+<<<<<<< HEAD
     def test_separate_drafter_mode_drops_target_copy(self):
         # The duplicated target context is MTP-only. draft-simple / draft-eagle3
         # load a small separate drafter with its own KV (counted in the draft KV)
@@ -188,6 +189,8 @@ class TestMlaTargetCtxReserve:
         assert mtp == separate + b._estimate_kv_cache_bytes(ctx, "f16")
         assert mtp > separate
 
+=======
+>>>>>>> 33e44f5a2 (Merge branch 'main' into feat/pr6370-prompt-vars-ux)
 
 class TestMlaFitPreventsOom:
     """The corrected reserve must actually lower the auto-fit context so the
@@ -216,7 +219,11 @@ class TestMlaFitPreventsOom:
             self.MODEL_BYTES,
             mtp_engaged = True,
             total_mib = self.TOTAL_MIB,
+<<<<<<< HEAD
             mtp_overhead_fn = lambda c: b._mtp_draft_kv_bytes(c) or 0,
+=======
+            mtp_overhead_fn = lambda c: (b._mtp_draft_kv_bytes(c) or 0),
+>>>>>>> 33e44f5a2 (Merge branch 'main' into feat/pr6370-prompt-vars-ux)
         )
         assert draft_only == self.REQ_CTX  # reproduces the over-advertised context
         assert with_copy < self.REQ_CTX  # corrected reserve backs the context off

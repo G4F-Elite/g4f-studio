@@ -2869,6 +2869,7 @@ class LlamaCppBackend:
         mtp_keeps_target_ctx: bool = True,
     ) -> Optional[int]:
         """MTP draft reserve at ``n_ctx`` = draft KV (grows with ctx) + separate-
+<<<<<<< HEAD
         drafter weights + (MTP + MLA only) a duplicated target KV context. The
         verify buffer rides in the ctx-fit headroom (no tuned constant). None when
         the draft KV can't be sized (caller keeps the flat fallback).
@@ -2876,6 +2877,12 @@ class LlamaCppBackend:
         ``mtp_keeps_target_ctx`` is True for MTP draft modes (which keep the
         duplicated target context) and False for separate-drafter spec modes
         (draft-simple/draft-eagle3), which do not."""
+=======
+        drafter weights + (MLA only) a duplicated target KV context. The verify
+        buffer rides in the ctx-fit headroom (no tuned constant). None when the
+        draft KV can't be sized (caller keeps the flat fallback).
+        ``draft_weights_bytes`` is the drafter file size (0 for embedded)."""
+>>>>>>> 33e44f5a2 (Merge branch 'main' into feat/pr6370-prompt-vars-ux)
         draft_kv = self._mtp_draft_kv_bytes(
             n_ctx,
             drafter_path = drafter_path,
@@ -2884,12 +2891,18 @@ class LlamaCppBackend:
             n_parallel = n_parallel,
         )
         weights = max(0, draft_weights_bytes)
+<<<<<<< HEAD
         # MLA models (GLM-5.x, DeepSeek, Kimi-K2) under MTP keep a *second* full copy
         # of the target model's KV context for draft verification -- llama.cpp's
+=======
+        # MLA models (GLM-5.x, DeepSeek, Kimi-K2) keep a *second* full copy of the
+        # target model's KV context for MTP draft verification -- llama.cpp's
+>>>>>>> 33e44f5a2 (Merge branch 'main' into feat/pr6370-prompt-vars-ux)
         # `ctx_tgt=yes` -- allocated at f16 regardless of the main cache type. It is
         # ~the main KV again and dwarfs the embedded draft head (GLM-5.2 @ 1M ctx:
         # a ~2 GiB head next to a ~89 GiB target copy), so omitting it lets auto-fit
         # pick a context that fits on paper but OOMs cublasCreate at the first
+<<<<<<< HEAD
         # decode. Gated on both MLA (kv_lora_rank present) and the engaged mode
         # actually being MTP: non-MLA MTP (Qwen/Gemma) keeps no such copy, and the
         # separate-drafter spec modes (draft-simple/draft-eagle3) load a small
@@ -2897,6 +2910,12 @@ class LlamaCppBackend:
         # rather than duplicating the target, so they must not be charged for it.
         target_ctx_copy = 0
         if mtp_keeps_target_ctx and self._kv_lora_rank is not None:
+=======
+        # decode. Non-MLA MTP (Qwen/Gemma) keeps no such copy, so this is gated
+        # strictly on MLA (kv_lora_rank present) and leaves those models unchanged.
+        target_ctx_copy = 0
+        if self._kv_lora_rank is not None:
+>>>>>>> 33e44f5a2 (Merge branch 'main' into feat/pr6370-prompt-vars-ux)
             target_ctx_copy = self._estimate_kv_cache_bytes(n_ctx, "f16", n_parallel = n_parallel)
         if draft_kv is None:
             # KV unsized (exotic/remote drafter): still reserve known weights + any
@@ -4894,6 +4913,7 @@ class LlamaCppBackend:
                         except Exception:
                             _mtp_binary_ok = False
                             _mtp_probe_raised = True
+<<<<<<< HEAD
                     _auto_studio_mtp = (
                         not _extra_args_set_spec_type(extra_args)
                         and _mtp_model_for_fit
@@ -4907,6 +4927,25 @@ class LlamaCppBackend:
                             # _build_speculative_flags and may still engage MTP (embedded
                             # head or separate drafter -- _mtp_model_for_fit covers both).
                             or _mtp_probe_raised
+=======
+                    _mtp_will_engage = bool(
+                        _user_mtp_via_extras
+                        or _user_draft_via_extras
+                        or (
+                            not _extra_args_set_spec_type(extra_args)
+                            and _mtp_model_for_fit
+                            and (
+                                _mtp_effective in ("mtp", "mtp+ngram")
+                                or (_mtp_effective == "auto" and not _mtp_sub_3b_for_fit)
+                            )
+                            and (
+                                _mtp_binary_ok
+                                # Reserve on a raised (uncached) probe too: it re-probes in
+                                # _build_speculative_flags and may still engage MTP (embedded
+                                # head or separate drafter -- _mtp_model_for_fit covers both).
+                                or _mtp_probe_raised
+                            )
+>>>>>>> 33e44f5a2 (Merge branch 'main' into feat/pr6370-prompt-vars-ux)
                         )
                     )
                     _mtp_will_engage = bool(
