@@ -1,12 +1,20 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # Copyright 2026-present the Unsloth AI Inc. team. All rights reserved. See /studio/LICENSE.AGPL-3.0
 
+from typing import Literal, Optional
+
 from fastapi import APIRouter, Depends
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from auth.authentication import get_current_subject
 from loggers import get_logger
 from utils.utils import safe_error_detail, log_and_http_error
+from utils.personalization_settings import (
+    MAX_AVATAR_DATA_URL_BYTES,
+    PERSONALIZATION_VERSION,
+    get_personalization,
+    set_personalization,
+)
 from utils.upload_limits import (
     MAX_UPLOAD_LIMIT_MB,
     MIN_UPLOAD_LIMIT_MB,
@@ -21,13 +29,6 @@ from utils.helper_precache_settings import (
     get_helper_precache_enabled,
     helper_model_disabled_by_env,
     set_helper_precache_enabled,
-)
-from utils.model_ttl_settings import (
-    MAX_MODEL_IDLE_TTL_SECONDS,
-    MIN_MODEL_IDLE_TTL_SECONDS,
-    default_model_idle_ttl_seconds,
-    get_model_idle_ttl_seconds,
-    set_model_idle_ttl_seconds,
 )
 
 router = APIRouter()
@@ -120,58 +121,77 @@ def update_helper_precache(
     return _helper_precache_response(enabled)
 
 
-class ModelIdleTtlPayload(BaseModel):
-    idle_ttl_seconds: int = Field(..., ge = MIN_MODEL_IDLE_TTL_SECONDS, le = MAX_MODEL_IDLE_TTL_SECONDS)
+# --- Personalization (profile + appearance), persisted server-side ----------
+# Field names are camelCase to match the frontend stores 1:1; extra keys are
+# ignored so the client can add prefs without a backend change.
 
 
-class ModelIdleTtlResponse(BaseModel):
-    idle_ttl_seconds: int
-    default_idle_ttl_seconds: int
-    min_idle_ttl_seconds: int = MIN_MODEL_IDLE_TTL_SECONDS
-    max_idle_ttl_seconds: int = MAX_MODEL_IDLE_TTL_SECONDS
-    enabled: bool
-    loaded_model_idle_seconds: float | None = None
-    evicts_in_seconds: float | None = None
+class PersonalizationProfile(BaseModel):
+    model_config = ConfigDict(extra = "ignore")
+
+    displayName: str = Field("", max_length = 200)
+    nickname: str = Field("", max_length = 200)
+    avatarDataUrl: Optional[str] = Field(None)
+    avatarShape: Literal["circle", "rounded"] = "circle"
+
+    @field_validator("avatarDataUrl")
+    @classmethod
+    def _validate_avatar(cls, value: Optional[str]) -> Optional[str]:
+        if not value:
+            return value
+        if not value.startswith("data:image/"):
+            raise ValueError("avatarDataUrl must be an image data URL.")
+        if len(value) > MAX_AVATAR_DATA_URL_BYTES:
+            raise ValueError("Avatar image is too large.")
+        return value
 
 
-def _model_idle_ttl_response(ttl: int) -> ModelIdleTtlResponse:
-    idle: float | None = None
-    evicts_in: float | None = None
+class PersonalizationAppearance(BaseModel):
+    model_config = ConfigDict(extra = "ignore")
+
+    theme: Literal["light", "dark", "system"] = "system"
+    language: Optional[str] = Field(None, max_length = 20)
+
+
+class PersonalizationPayload(BaseModel):
+    model_config = ConfigDict(extra = "ignore")
+
+    version: int = PERSONALIZATION_VERSION
+    profile: PersonalizationProfile = Field(default_factory = PersonalizationProfile)
+    appearance: PersonalizationAppearance = Field(default_factory = PersonalizationAppearance)
+
+
+class PersonalizationResponse(PersonalizationPayload):
+    # Whether a blob was ever saved. The client uses this to decide between
+    # hydrating from the server and migrating existing local settings up, so a
+    # never-saved account does not overwrite the browser's values with defaults.
+    saved: bool = False
+
+
+@router.get("/personalization", response_model = PersonalizationResponse)
+def get_personalization_settings(
+    current_subject: str = Depends(get_current_subject),
+) -> PersonalizationResponse:
+    # Normalize the stored blob through the model so the client always gets a
+    # complete, validated shape (defaults fill any missing fields).
+    stored = get_personalization()
+    response = PersonalizationResponse.model_validate(stored or {})
+    response.saved = bool(stored)
+    return response
+
+
+@router.put("/personalization", response_model = PersonalizationPayload)
+def update_personalization_settings(
+    payload: PersonalizationPayload, current_subject: str = Depends(get_current_subject)
+) -> PersonalizationPayload:
     try:
-        from routes.inference import get_llama_cpp_backend
-
-        backend = get_llama_cpp_backend()
-        idle = backend.idle_seconds
-        if ttl > 0 and idle is not None:
-            evicts_in = max(0.0, ttl - idle)
-    except Exception:
-        pass
-    return ModelIdleTtlResponse(
-        idle_ttl_seconds = ttl,
-        default_idle_ttl_seconds = default_model_idle_ttl_seconds(),
-        enabled = ttl > 0,
-        loaded_model_idle_seconds = idle,
-        evicts_in_seconds = evicts_in,
-    )
-
-
-@router.get("/model-ttl", response_model = ModelIdleTtlResponse)
-def get_model_ttl(current_subject: str = Depends(get_current_subject)) -> ModelIdleTtlResponse:
-    return _model_idle_ttl_response(get_model_idle_ttl_seconds())
-
-
-@router.put("/model-ttl", response_model = ModelIdleTtlResponse)
-def update_model_ttl(
-    payload: ModelIdleTtlPayload, current_subject: str = Depends(get_current_subject)
-) -> ModelIdleTtlResponse:
-    try:
-        ttl = set_model_idle_ttl_seconds(payload.idle_ttl_seconds)
+        set_personalization(payload.model_dump())
     except ValueError as exc:
         raise log_and_http_error(
             exc,
             400,
-            safe_error_detail(exc, fallback = "Invalid model idle TTL."),
-            event = "settings.update_model_ttl_failed",
+            safe_error_detail(exc, fallback = "Invalid personalization settings."),
+            event = "settings.update_personalization_failed",
             log = logger,
         ) from exc
-    return _model_idle_ttl_response(ttl)
+    return payload
