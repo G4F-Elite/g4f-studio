@@ -107,7 +107,7 @@ export function AboutTab() {
       </header>
 
       {/* llama.cpp row lives in the shared version section so it sits with the
-          Unsloth/Package rows; the prop keeps it About-only (General passes none). */}
+          g4f/Package rows; the prop keeps it About-only (General passes none). */}
       <StudioVersionSection llamaCppVersion={hw.llamaCpp} />
 
       <SettingsSection title={t("settings.about.updates")}>

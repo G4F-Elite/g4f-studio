@@ -8,8 +8,8 @@ import {
 } from "@/components/ui/tooltip";
 import { usePlatformStore } from "@/config/env";
 import {
-  type UnslothSupport,
-  classifyUnslothSupport,
+  type g4fSupport,
+  classifyg4fSupport,
 } from "@/features/hub/hooks/use-hub-model-search";
 import { useOnlineStatus } from "@/features/hub/hooks/use-online-status";
 import {
@@ -268,7 +268,7 @@ function ModelStatusChips({
 }: {
   isDataset: boolean;
   isGguf: boolean;
-  unslothSupport: UnslothSupport;
+  unslothSupport: g4fSupport;
   vramInfo: VramInfo;
 }) {
   const showUnsupported = !isDataset && unslothSupport.status === "unsupported";
@@ -439,8 +439,8 @@ export const ModelInspector = memo(function ModelInspector({
   const supportTagsKey = model?.tags?.join("\0") ?? "";
   const supportLibraryName = model?.libraryName;
   const supportQuantMethod = model?.quantMethod;
-  const unslothSupport = useMemo<UnslothSupport>(() => {
-    return classifyUnslothSupport({
+  const unslothSupport = useMemo<g4fSupport>(() => {
+    return classifyg4fSupport({
       modelId: supportModelId,
       pipelineTag: supportPipelineTag,
       tags: supportTagsKey ? supportTagsKey.split("\0") : undefined,
@@ -546,7 +546,7 @@ export const ModelInspector = memo(function ModelInspector({
               <span className="truncate">{model.owner}</span>
               {model.owner.toLowerCase() === "unsloth" && (
                 <span
-                  aria-label="Verified Unsloth"
+                  aria-label="Verified g4f"
                   className="hub-verified-badge size-[18px] shrink-0 text-primary"
                 />
               )}

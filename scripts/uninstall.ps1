@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # Copyright 2026-present the Unsloth AI Inc. team. All rights reserved. See /studio/LICENSE.AGPL-3.0
 #
-# Unsloth Studio uninstaller for Windows PowerShell.
+# g4f Studio uninstaller for Windows PowerShell.
 # Stops running servers and removes install dir, launcher data, CLI shim,
 # desktop and Start Menu shortcuts, the user PATH entry, and the PathBackup
 # registry key. Honors custom roots set via UNSLOTH_STUDIO_HOME / STUDIO_HOME
@@ -149,9 +149,9 @@ function Uninstall-UnslothStudio {
             $confRoot = _RootFromConf (Join-Path $expandedEnv "share\studio.conf")
             if ($confRoot) { & $emit $confRoot }
         }
-        # Default-mode conf at LOCALAPPDATA\Unsloth Studio.
+        # Default-mode conf at LOCALAPPDATA\g4f Studio.
         if ($env:LOCALAPPDATA) {
-            $confRoot = _RootFromConf (Join-Path $env:LOCALAPPDATA "Unsloth Studio\studio.conf")
+            $confRoot = _RootFromConf (Join-Path $env:LOCALAPPDATA "g4f Studio\studio.conf")
             if ($confRoot) { & $emit $confRoot }
         }
     }
@@ -279,7 +279,7 @@ function Uninstall-UnslothStudio {
 
     # Default install root + default data dir.
     $defaultStudioHome = if ($env:USERPROFILE) { Join-Path $env:USERPROFILE ".unsloth\studio" } else { $null }
-    $defaultDataDir = if ($env:LOCALAPPDATA) { Join-Path $env:LOCALAPPDATA "Unsloth Studio" } else { $null }
+    $defaultDataDir = if ($env:LOCALAPPDATA) { Join-Path $env:LOCALAPPDATA "g4f Studio" } else { $null }
     # Default-mode ~/.unsloth holds a SHARED llama.cpp build + .cache that are
     # siblings of studio (not under it), so deleting <studio> misses them -- handle
     # explicitly. No-op in env/custom mode (nested under the custom root, removed
@@ -300,7 +300,7 @@ function Uninstall-UnslothStudio {
     $knownRoots += $customRoots
 
     # ── Stop running servers ──
-    _Step "Stopping any running Unsloth Studio servers..."
+    _Step "Stopping any running g4f Studio servers..."
     if ($defaultDataDir) {
         _StopByPortFile -PortFile (Join-Path $defaultDataDir "studio.port") -KnownRoots $knownRoots
     }
@@ -344,10 +344,10 @@ function Uninstall-UnslothStudio {
     _Step "Removing desktop and Start Menu shortcuts..."
     try {
         $desktop = [Environment]::GetFolderPath("Desktop")
-        if ($desktop) { _RemovePath (Join-Path $desktop "Unsloth Studio.lnk") }
+        if ($desktop) { _RemovePath (Join-Path $desktop "g4f Studio.lnk") }
     } catch { }
     if ($env:APPDATA) {
-        _RemovePath (Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\Unsloth Studio.lnk")
+        _RemovePath (Join-Path $env:APPDATA "Microsoft\Windows\Start Menu\Programs\g4f Studio.lnk")
     }
     # Invalidate the Win11 Start Menu tile cache so the removed shortcut's tile
     # disappears promptly instead of lingering stale (mirrors install.ps1's
@@ -418,12 +418,12 @@ function Uninstall-UnslothStudio {
     } catch { }
 
     Write-Host ""
-    Write-Host "Unsloth Studio uninstalled."
+    Write-Host "g4f Studio uninstalled."
     Write-Host "Note: Hugging Face model cache at %USERPROFILE%\.cache\huggingface was left in place."
     Write-Host "Remove it manually with 'Remove-Item -Recurse -Force `"$env:USERPROFILE\.cache\huggingface\hub`"' if desired."
     if (-not $env:UNSLOTH_STUDIO_HOME -and -not $env:STUDIO_HOME) {
         Write-Host ""
-        Write-Host "If you installed Unsloth Studio with UNSLOTH_STUDIO_HOME or STUDIO_HOME"
+        Write-Host "If you installed g4f Studio with UNSLOTH_STUDIO_HOME or STUDIO_HOME"
         Write-Host "pointing at a custom directory, re-run this script with the same variable"
         Write-Host "set to also remove that install tree, e.g.:"
         Write-Host "  `$env:UNSLOTH_STUDIO_HOME = 'C:\your\path'; irm https://raw.githubusercontent.com/unslothai/unsloth/main/scripts/uninstall.ps1 | iex"

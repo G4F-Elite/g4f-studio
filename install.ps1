@@ -1,4 +1,4 @@
-# Unsloth Studio Installer for Windows PowerShell
+# g4f Studio Installer for Windows PowerShell
 #
 # Usage:  irm https://unsloth.ai/install.ps1 | iex
 #         Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass; .\install.ps1 --local
@@ -199,7 +199,7 @@ function Install-UnslothStudio {
     # LOCALAPPDATA may be unset in service / CI contexts; Join-Path would abort
     # under ErrorActionPreference=Stop without this guard.
     $defaultDataDir = if ($env:LOCALAPPDATA -and -not [string]::IsNullOrWhiteSpace($env:LOCALAPPDATA)) {
-        Join-Path $env:LOCALAPPDATA "Unsloth Studio"
+        Join-Path $env:LOCALAPPDATA "g4f Studio"
     } else { $null }
 
     if ($envOverride) {
@@ -281,10 +281,10 @@ function Install-UnslothStudio {
 
     Write-Host ""
     if ($script:StudioVtOk -and -not $env:NO_COLOR) {
-        Write-Host ("  " + (Get-StudioAnsi Title) + $Sloth + " Unsloth Studio Installer (Windows)" + (Get-StudioAnsi Reset))
+        Write-Host ("  " + (Get-StudioAnsi Title) + $Sloth + " g4f Studio Installer (Windows)" + (Get-StudioAnsi Reset))
         Write-Host ("  {0}{1}{2}" -f (Get-StudioAnsi Dim), $Rule, (Get-StudioAnsi Reset))
     } else {
-        Write-Host ("  {0} Unsloth Studio Installer (Windows)" -f $Sloth) -ForegroundColor DarkGreen
+        Write-Host ("  {0} g4f Studio Installer (Windows)" -f $Sloth) -ForegroundColor DarkGreen
         Write-Host "  $Rule" -ForegroundColor DarkGray
     }
     Write-Host ""
@@ -530,7 +530,7 @@ function Install-UnslothStudio {
             # This prevents runtime variable expansion for paths containing '$'.
             $SingleQuotedExePath = $UnslothExePath -replace "'", "''"
 
-            # $StudioDataDir = LOCALAPPDATA\Unsloth Studio, or $StudioHome\share in env-mode.
+            # $StudioDataDir = LOCALAPPDATA\g4f Studio, or $StudioHome\share in env-mode.
             if (-not $StudioDataDir -or [string]::IsNullOrWhiteSpace($StudioDataDir)) {
                 substep "DataDir path unavailable; skipped shortcut creation" "Yellow"
                 return
@@ -539,7 +539,7 @@ function Install-UnslothStudio {
             $launcherPs1 = Join-Path $appDir "launch-studio.ps1"
             $desktopDir = [Environment]::GetFolderPath("Desktop")
             $desktopLink = if ($desktopDir -and $desktopDir.Trim()) {
-                Join-Path $desktopDir "Unsloth Studio.lnk"
+                Join-Path $desktopDir "g4f Studio.lnk"
             } else {
                 $null
             }
@@ -549,7 +549,7 @@ function Install-UnslothStudio {
                 $null
             }
             $startMenuLink = if ($startMenuDir -and $startMenuDir.Trim()) {
-                Join-Path $startMenuDir "Unsloth Studio.lnk"
+                Join-Path $startMenuDir "g4f Studio.lnk"
             } else {
                 $null
             }
@@ -764,7 +764,7 @@ try {
         `$msg = "No free port found in range `$basePort-`$(`$basePort + `$maxPortOffset)"
         try {
             Add-Type -AssemblyName System.Windows.Forms -ErrorAction Stop
-            [System.Windows.Forms.MessageBox]::Show(`$msg, 'Unsloth Studio') | Out-Null
+            [System.Windows.Forms.MessageBox]::Show(`$msg, 'g4f Studio') | Out-Null
         } catch {}
         exit 1
     }
@@ -783,10 +783,10 @@ try {
     try {
         `$proc = Start-Process -FilePath `$powershellExe -ArgumentList `$launchArgs -WorkingDirectory `$env:USERPROFILE -PassThru
     } catch {
-        `$msg = "Could not launch Unsloth Studio terminal.`n`nError: `$(`$_.Exception.Message)"
+        `$msg = "Could not launch g4f Studio terminal.`n`nError: `$(`$_.Exception.Message)"
         try {
             Add-Type -AssemblyName System.Windows.Forms -ErrorAction Stop
-            [System.Windows.Forms.MessageBox]::Show(`$msg, 'Unsloth Studio') | Out-Null
+            [System.Windows.Forms.MessageBox]::Show(`$msg, 'g4f Studio') | Out-Null
         } catch {}
         exit 1
     }
@@ -809,13 +809,13 @@ try {
     }
     if (-not `$browserOpened) {
         if (`$proc.HasExited) {
-            `$msg = "Unsloth Studio exited before becoming healthy. Check terminal output for errors."
+            `$msg = "g4f Studio exited before becoming healthy. Check terminal output for errors."
         } else {
-            `$msg = "Unsloth Studio is still starting but did not become healthy within `$timeoutSec seconds. Check the terminal window for the selected port and open it manually."
+            `$msg = "g4f Studio is still starting but did not become healthy within `$timeoutSec seconds. Check the terminal window for the selected port and open it manually."
         }
         try {
             Add-Type -AssemblyName System.Windows.Forms -ErrorAction Stop
-            [System.Windows.Forms.MessageBox]::Show(`$msg, 'Unsloth Studio') | Out-Null
+            [System.Windows.Forms.MessageBox]::Show(`$msg, 'g4f Studio') | Out-Null
         } catch {}
     }
 } finally {
@@ -943,7 +943,7 @@ exit 0
                         $shortcut.WorkingDirectory = $appDir
                         # Start minimized so the brief PowerShell console flash is muted.
                         $shortcut.WindowStyle = 7
-                        $shortcut.Description = "Launch Unsloth Studio"
+                        $shortcut.Description = "Launch g4f Studio"
                         if ($hasValidIcon) {
                             $shortcut.IconLocation = "$iconPath,0"
                         }
@@ -955,7 +955,7 @@ exit 0
                     }
                 }
                 if ($createdShortcutCount -gt 0) {
-                    substep "Created Unsloth Studio shortcut"
+                    substep "Created g4f Studio shortcut"
                     # Always do the cheap, non-disruptive per-item refresh so a
                     # rewritten same-name .lnk renders with its new target/icon
                     # immediately (a same-name .lnk recreated across reinstalls keeps
@@ -998,7 +998,7 @@ exit 0
                         } catch {}
                     }
                 } else {
-                    substep "no Unsloth Studio shortcuts were created" "Yellow"
+                    substep "no g4f Studio shortcuts were created" "Yellow"
                 }
             } catch {
                 substep "shortcut creation unavailable: $($_.Exception.Message)" "Yellow"
@@ -1422,7 +1422,7 @@ exit 0
             -not (Test-Path -LiteralPath (Join-Path $StudioHome "share\studio.conf") -PathType Leaf) -and
             -not (Test-Path -LiteralPath (Join-Path $StudioHome "bin\unsloth.exe") -PathType Leaf)
         ) {
-            Write-Host "[ERROR] $VenvDir already exists but does not look like an Unsloth Studio install." -ForegroundColor Red
+            Write-Host "[ERROR] $VenvDir already exists but does not look like an g4f Studio install." -ForegroundColor Red
             Write-Host "        Move it aside or choose an empty UNSLOTH_STUDIO_HOME." -ForegroundColor Yellow
             throw "Refusing to delete non-Studio venv at $VenvDir"
         }
@@ -2497,7 +2497,7 @@ exit 0
     $IsInteractive = [Environment]::UserInteractive -and (-not [Console]::IsInputRedirected)
     if ($IsInteractive) {
         Write-Host ""
-        $reply = Read-Host "  Start Unsloth Studio now? [Y/n]"
+        $reply = Read-Host "  Start g4f Studio now? [Y/n]"
         if ([string]::IsNullOrWhiteSpace($reply) -or $reply -match '^[Yy]') {
             & $UnslothExe studio -p 8888
         } else {

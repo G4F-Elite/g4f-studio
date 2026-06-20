@@ -121,10 +121,10 @@ const UNSUPPORTED_QUANT_METHODS: Record<string, string> = {
   fp_quant: "FP-Quant quantization",
 };
 
-export type UnslothSupportStatus = "supported" | "unsupported";
+export type g4fSupportStatus = "supported" | "unsupported";
 
-export interface UnslothSupport {
-  status: UnslothSupportStatus;
+export interface g4fSupport {
+  status: g4fSupportStatus;
   reason: string | null;
 }
 
@@ -165,7 +165,7 @@ function detectFormatKey(
   return null;
 }
 
-export function classifyUnslothSupport({
+export function classifyg4fSupport({
   modelId,
   pipelineTag,
   tags,
@@ -179,7 +179,7 @@ export function classifyUnslothSupport({
   libraryName?: string | null;
   deviceType?: string | null;
   quantMethod?: string | null;
-}): UnslothSupport {
+}): g4fSupport {
   const pipeline = pipelineTag?.toLowerCase().trim() || null;
   const lowerTags = new Set(
     (tags ?? []).map((tag) => tag.toLowerCase().trim()).filter(Boolean),

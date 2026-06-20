@@ -2,7 +2,7 @@
 # Copyright 2026-present the Unsloth AI Inc. team. All rights reserved. See /studio/LICENSE.AGPL-3.0
 
 """
-Colab helpers for Unsloth Studio. Uses Colab's built-in proxy.
+Colab helpers for g4f Studio. Uses Colab's built-in proxy.
 """
 
 from pathlib import Path
@@ -74,7 +74,7 @@ def show_link(port: int = 8888, *, _url: "str | None" = None):
         short_url = url
 
     # Plain-text line so the URL shows even if HTML display fails.
-    logger.info(f"🌐 Unsloth Studio URL: {url}")
+    logger.info(f"🌐 g4f Studio URL: {url}")
 
     html = f"""
     <div style="display: inline-block; padding: 20px; background: #ffffff; border: 2px solid #000000;
@@ -83,14 +83,14 @@ def show_link(port: int = 8888, *, _url: "str | None" = None):
                    display: flex; align-items: center; gap: 12px;">
             <img src="https://github.com/unslothai/unsloth/raw/main/studio/frontend/public/unsloth-gem.png"
                  height="48" style="display:block;">
-            Unsloth Studio is Ready!
+            g4f Studio is Ready!
         </h2>
         <a href="{url}" onclick="var w=window.open(this.href,'_blank');if(!w){{return true;}}return false;"
            style="display: inline-flex; align-items: center; gap: 10px; padding: 14px 28px;
                   background: #000000; color: white; text-decoration: none; border-radius: 8px;
                   font-weight: 800; font-size: 16px; cursor: pointer;">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="white"><polygon points="5,3 19,12 5,21"/></svg>
-            Open Unsloth Studio
+            Open g4f Studio
         </a>
         <p style="color: #333333; margin: 12px 0 0 0; font-size: 14px; font-weight: bold;">
             If the link doesn't work, you can scroll down to view the UI generated directly in Colab.
@@ -120,7 +120,7 @@ def _show_and_embed(port: int):
     iframe. Falls back to serve_kernel_port_as_iframe if IPython HTML is unavailable.
     """
     url = get_colab_url(port)
-    logger.info(f"🌐 Unsloth Studio URL: {url}")
+    logger.info(f"🌐 g4f Studio URL: {url}")
 
     try:
         from IPython.display import HTML, display
@@ -143,7 +143,7 @@ def _show_and_embed(port: int):
   <div style="display:flex;align-items:center;gap:10px;padding:10px 16px;background:#000;">
     <img src="https://github.com/unslothai/unsloth/raw/main/studio/frontend/public/unsloth-gem.png"
          height="26" style="display:block;">
-    <span style="color:#fff;font-weight:700;font-size:15px;letter-spacing:-0.2px;">Unsloth Studio</span>
+    <span style="color:#fff;font-weight:700;font-size:15px;letter-spacing:-0.2px;">g4f Studio</span>
     <span style="margin-left:auto;color:#666;font-size:11px;font-family:monospace;">{short_url}</span>
   </div>
   <iframe
@@ -166,7 +166,7 @@ def _show_and_embed(port: int):
 
 def start(port: int = 8888):
     """
-    Start Unsloth Studio server in Colab and display the URL.
+    Start g4f Studio server in Colab and display the URL.
 
     Usage:
         from colab import start
@@ -174,7 +174,7 @@ def start(port: int = 8888):
     """
     import time
 
-    logger.info("🦥 Starting Unsloth Studio...")
+    logger.info("🦥 Starting g4f Studio...")
 
     # Fast path: Studio already running (cell re-run). Re-launching would collide on
     # the port, so just re-show the link and iframe.
@@ -186,7 +186,7 @@ def start(port: int = 8888):
                 time.sleep(300)
                 print("=", end = "", flush = True)
         except KeyboardInterrupt:
-            logger.info("\nUnsloth Studio keepalive stopped.")
+            logger.info("\ng4f Studio keepalive stopped.")
         return
 
     logger.info("   Loading backend...")
@@ -204,10 +204,10 @@ def start(port: int = 8888):
     try:
         app = run_server(host = "0.0.0.0", port = port, frontend_path = frontend_path, silent = True)
     except SystemExit as exc:
-        logger.error(f"❌ Unsloth Studio failed to start: {exc}")
+        logger.error(f"❌ g4f Studio failed to start: {exc}")
         return
     except Exception as exc:
-        logger.error(f"❌ Unsloth Studio failed to start: {exc}")
+        logger.error(f"❌ g4f Studio failed to start: {exc}")
         return
 
     # run_server auto-increments the port if in use; read back the bound port so the
@@ -231,7 +231,7 @@ def start(port: int = 8888):
 
     if not server_ready:
         logger.error(
-            f"❌ Unsloth Studio did not become healthy on port {actual_port}. "
+            f"❌ g4f Studio did not become healthy on port {actual_port}. "
             "Check for errors above."
         )
         return
@@ -245,7 +245,7 @@ def start(port: int = 8888):
             time.sleep(300)
             print("=", end = "", flush = True)
     except KeyboardInterrupt:
-        logger.info("\nUnsloth Studio keepalive stopped.")
+        logger.info("\ng4f Studio keepalive stopped.")
 
 
 if __name__ == "__main__":

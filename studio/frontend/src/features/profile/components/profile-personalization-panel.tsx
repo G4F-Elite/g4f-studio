@@ -67,7 +67,7 @@ export function ProfilePersonalizationPanel() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const sessionSub = decodeJwtSubject(getAuthToken()) ?? "";
-  const previewName = draftName.trim() || sessionSub || "Unsloth";
+  const previewName = draftName.trim() || sessionSub || "g4f";
   const hasNameChanges = useMemo(
     () => draftName.trim() !== displayName.trim(),
     [draftName, displayName],
@@ -190,7 +190,7 @@ export function ProfilePersonalizationPanel() {
               }
             }}
             autoComplete="off"
-            placeholder={sessionSub || "Unsloth"}
+            placeholder={sessionSub || "g4f"}
             className="h-10 min-w-0 flex-1 rounded-full text-sm"
           />
           <Button type="button" size="sm" className="h-10 px-5" onClick={saveName} disabled={!hasNameChanges}>

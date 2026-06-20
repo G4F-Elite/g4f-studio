@@ -574,9 +574,9 @@ jobs:
           projectPath: studio
           tauriScript: npx --prefix . tauri
           tagName: ${{ needs.prepare-version.outputs.desktop_release_tag }}
-          releaseName: 'Unsloth Studio (Desktop) ${{ needs.prepare-version.outputs.studio_version }}'
+          releaseName: 'g4f Studio (Desktop) ${{ needs.prepare-version.outputs.studio_version }}'
           releaseBody: |
-            Desktop app for Unsloth Studio.
+            Desktop app for g4f Studio.
 
             **macOS**: Download the Apple Silicon `.dmg`.
             **Windows**: Download the `-setup.exe` installer.
@@ -605,9 +605,9 @@ jobs:
           projectPath: studio
           tauriScript: npx --prefix . tauri
           tagName: ${{ needs.prepare-version.outputs.desktop_release_tag }}
-          releaseName: 'Unsloth Studio (Desktop) ${{ needs.prepare-version.outputs.studio_version }}'
+          releaseName: 'g4f Studio (Desktop) ${{ needs.prepare-version.outputs.studio_version }}'
           releaseBody: |
-            Desktop app for Unsloth Studio.
+            Desktop app for g4f Studio.
 
             **macOS**: Download the Apple Silicon `.dmg`.
             **Windows**: Download the `-setup.exe` installer.
@@ -637,9 +637,9 @@ jobs:
           projectPath: studio
           tauriScript: npx --prefix . tauri
           tagName: ${{ needs.prepare-version.outputs.desktop_release_tag }}
-          releaseName: 'Unsloth Studio (Desktop) ${{ needs.prepare-version.outputs.studio_version }}'
+          releaseName: 'g4f Studio (Desktop) ${{ needs.prepare-version.outputs.studio_version }}'
           releaseBody: |
-            Desktop app for Unsloth Studio.
+            Desktop app for g4f Studio.
 
             **macOS**: Download the Apple Silicon `.dmg`.
             **Windows**: Download the `-setup.exe` installer.
@@ -764,7 +764,7 @@ jobs:
           channel_json="$RUNNER_TEMP/desktop-latest-release.json"
           if ! gh api "repos/${GITHUB_REPOSITORY}/releases/tags/desktop-latest" > "$channel_json" 2>/dev/null; then
             gh release create desktop-latest \
-              --title "Unsloth Studio Desktop updater channel" \
+              --title "g4f Studio Desktop updater channel" \
               --notes "Machine-managed desktop updater channel; latest.json is replaced by release-desktop.yml." \
               --prerelease \
               --latest=false \

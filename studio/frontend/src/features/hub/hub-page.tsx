@@ -69,7 +69,7 @@ import { inventoryRowMatches, tokenizeQuery } from "./lib/inventory-search";
 import {
   buildDiscoverRows,
   detectResultFormat,
-  isUnslothFinetunable,
+  isg4fFinetunable,
   matchesCapability,
   matchesFormat,
 } from "./lib/view-models";
@@ -685,7 +685,7 @@ export function ModelsPage() {
       (row) =>
         matchesFormat(detectResultFormat(row.result), effectiveDiscoverFormat) &&
         matchesCapability(row.capabilities, deferredCapabilityFilter) &&
-        (!activeChannel?.finetunableOnly || isUnslothFinetunable(row.result)),
+        (!activeChannel?.finetunableOnly || isg4fFinetunable(row.result)),
     );
   }, [
     discoverRows,

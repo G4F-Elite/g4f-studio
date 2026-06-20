@@ -116,7 +116,7 @@ fn setup_tray(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
 
     TrayIconBuilder::new()
         .menu(&menu)
-        .tooltip("Unsloth Studio (Desktop)")
+        .tooltip("g4f Studio (Desktop)")
         .icon(app.default_window_icon().unwrap().clone())
         .on_menu_event(move |app, event| match event.id().as_ref() {
             "open" => {
@@ -166,7 +166,7 @@ fn main() {
     let _ = fix_path_env::fix();
 
     setup_logging();
-    info!("Unsloth Studio desktop app starting");
+    info!("g4f Studio desktop app starting");
     windows_job::initialize();
 
     tauri::Builder::default()

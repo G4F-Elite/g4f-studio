@@ -164,7 +164,7 @@ jobs:
           for p in \
             "$HOME/.unsloth/studio" \
             "$HOME/.local/share/unsloth" \
-            "$HOME/Desktop/Unsloth Studio.desktop" \
+            "$HOME/Desktop/g4f Studio.desktop" \
             "$HOME/.local/bin/unsloth"; do
             if [ -e "$p" ] || [ -L "$p" ]; then
               echo "::error::leak: $p"

@@ -6,7 +6,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { classifyUnslothSupport } from "@/features/hub/hooks/use-hub-model-search";
+import { classifyg4fSupport } from "@/features/hub/hooks/use-hub-model-search";
 import { ownerPaletteColor } from "@/features/hub/lib/avatar-theme";
 import { buildAdaptiveCardAccentStyle } from "@/features/hub/lib/card-accent";
 import { useDominantColor } from "@/features/hub/lib/use-dominant-color";
@@ -239,7 +239,7 @@ export const ModelCard = memo(function ModelCard({
     () =>
       isDataset
         ? null
-        : classifyUnslothSupport({
+        : classifyg4fSupport({
             modelId: row.id,
             pipelineTag: row.result.pipelineTag,
             tags: row.result.tags,
@@ -294,7 +294,7 @@ export const ModelCard = memo(function ModelCard({
             <span className="truncate">{row.owner}</span>
             {row.owner.toLowerCase() === "unsloth" && (
               <span
-                aria-label="Verified Unsloth"
+                aria-label="Verified g4f"
                 className="hub-verified-badge size-3.5 shrink-0 text-primary"
               />
             )}

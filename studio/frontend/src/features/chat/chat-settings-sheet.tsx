@@ -1734,7 +1734,7 @@ function AutoHealToolCallsToggle() {
           Auto-Healing Tool Calls
         </span>
         <InfoHint>
-          Unsloth auto-fixes broken tool calls so inference output is never
+          g4f auto-fixes broken tool calls so inference output is never
           broken.
         </InfoHint>
       </div>

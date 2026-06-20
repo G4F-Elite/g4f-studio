@@ -12,7 +12,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { classifyUnslothSupport } from "@/features/hub/hooks/use-hub-model-search";
+import { classifyg4fSupport } from "@/features/hub/hooks/use-hub-model-search";
 import {
   formatRelativeLong,
   formatRelativeShort,
@@ -339,7 +339,7 @@ function VerifiedOwner({ owner }: { owner: string }) {
       <span className="truncate">{owner}</span>
       {owner.toLowerCase() === "unsloth" && (
         <span
-          aria-label="Verified Unsloth"
+          aria-label="Verified g4f"
           className="hub-verified-badge size-3.5 shrink-0 text-primary"
         />
       )}
@@ -513,7 +513,7 @@ function useResultRowModel(
     () =>
       isDataset
         ? null
-        : classifyUnslothSupport({
+        : classifyg4fSupport({
             modelId: row.id,
             pipelineTag: row.result.pipelineTag,
             tags: row.result.tags,

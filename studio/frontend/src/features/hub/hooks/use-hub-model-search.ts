@@ -22,10 +22,10 @@ import { EMBEDDING_TAGS, estimateSizeFromDtypes } from "../lib/hf-model-meta";
 import { detectBaseModel } from "../lib/model-capabilities";
 import { isGgufLike } from "../lib/model-identifiers";
 import {
-  classifyUnslothSupport,
+  classifyg4fSupport,
   excludedFormatTagsForDevice,
-  type UnslothSupport,
-  type UnslothSupportStatus,
+  type g4fSupport,
+  type g4fSupportStatus,
 } from "../lib/unsloth-support";
 
 const ALL_FIELDS: (
@@ -44,8 +44,8 @@ const ALL_FIELDS: (
   "downloadsAllTime",
 ];
 
-export { classifyUnslothSupport };
-export type { UnslothSupport, UnslothSupportStatus };
+export { classifyg4fSupport };
+export type { g4fSupport, g4fSupportStatus };
 
 export type HfSortKey =
   | "trendingScore"
@@ -205,7 +205,7 @@ function makeMapModel(
     // opts out via keepUnsupportedTags to render them with a "may not be supported"
     // dot. Embeddings skip the gate: their pipeline tag is unsupported for chat but trainable.
     if (!keepUnsupportedTags && !isEmbedding) {
-      const support = classifyUnslothSupport({
+      const support = classifyg4fSupport({
         modelId: m.name,
         pipelineTag,
         tags: m.tags,
@@ -248,7 +248,7 @@ function makeMapModel(
   };
 }
 
-/** Unsloth results pulled up-front before yielding general results. */
+/** g4f results pulled up-front before yielding general results. */
 const UNSLOTH_PREFETCH = 20;
 /** With a typed query, float only a few unsloth results before the general listing. */
 const UNSLOTH_QUERY_PREFETCH = 3;
@@ -460,7 +460,7 @@ const UNSLOTH_CHANNEL_PREFETCH = 60;
 // For tag/format channels without a fixed owner (e.g. GGUF filter), yield unsloth
 // models first (in sort order), then the rest with already-seen unsloth repos removed,
 // floating unsloth to the top even when sorting by downloads/likes.
-async function* channelUnslothFirstIterator(
+async function* channelg4fFirstIterator(
   channel: { tags?: string[]; query?: string },
   opts: {
     query?: string;
@@ -577,7 +577,7 @@ export function useHubModelSearch(
     priorityIds?: readonly string[];
     sortBy?: HfSortKey;
     sortDirection?: HfSortDirection;
-    pinUnslothFirst?: boolean;
+    ping4fFirst?: boolean;
     /**
      * "unsloth" restricts listings to the unsloth org; "all" surfaces the whole
      * Hub with unsloth floated to the top. Owner-fixed channel presets ignore this.
@@ -595,7 +595,7 @@ export function useHubModelSearch(
     priorityIds,
     sortBy = "downloads",
     sortDirection = "desc",
-    pinUnslothFirst = true,
+    ping4fFirst = true,
     ownerScope = "all",
     enabled = true,
     keepUnsupportedTags = false,
@@ -634,7 +634,7 @@ export function useHubModelSearch(
         const channelTags = channelTagsKey
           ? channelTagsKey.split("|")
           : undefined;
-        // Unsloth-only scope on an ownerless tag/format channel (e.g. GGUF filter):
+        // g4f-only scope on an ownerless tag/format channel (e.g. GGUF filter):
         // hard-restrict the slice to unsloth-owned repos.
         if (unslothOnly && !channelOwner) {
           return createChannelIterator(
@@ -653,8 +653,8 @@ export function useHubModelSearch(
           );
         }
         // Ownerless tag/format channels (e.g. GGUF filter): float unsloth-owned models first.
-        if (pinUnslothFirst && channelTagsKey && !channelOwner) {
-          return channelUnslothFirstIterator(
+        if (ping4fFirst && channelTagsKey && !channelOwner) {
+          return channelg4fFirstIterator(
             { tags: channelTags, query: channelQuery || undefined },
             {
               query: trimmed || undefined,
@@ -698,7 +698,7 @@ export function useHubModelSearch(
           normalizeTaskFilter(task),
           (task) =>
             listModels({
-              // Unsloth-only scope restricts the plain sort browse to the org.
+              // g4f-only scope restricts the plain sort browse to the org.
               search: {
                 ...(unslothOnly ? { owner: "unsloth" } : {}),
                 ...(task ? { task } : {}),
@@ -710,7 +710,7 @@ export function useHubModelSearch(
             }) as AsyncGenerator<unknown>,
         );
       }
-      // Unsloth-only typed query: search within the org rather than floating
+      // g4f-only typed query: search within the org rather than floating
       // a few unsloth hits above the global relevance ranking.
       if (unslothOnly) {
         return listModels({
@@ -724,7 +724,7 @@ export function useHubModelSearch(
       // Typed query: drop the task filter so searched models appear despite
       // wrong/missing HF task metadata. For an "owner/repo" query, strip the org
       // prefix so unsloth variants surface, then pin the original publisher model.
-      // Unsloth-owned queries are left as-is for the full prefetch + secondary sort.
+      // g4f-owned queries are left as-is for the full prefetch + secondary sort.
       return mergedModelIterator(
         searchQuery,
         undefined,
@@ -747,7 +747,7 @@ export function useHubModelSearch(
       channelOwner,
       channelTagsKey,
       channelQuery,
-      pinUnslothFirst,
+      ping4fFirst,
       unslothOnly,
     ],
   );
@@ -792,7 +792,7 @@ export function useHubModelSearch(
   // Owner-scoped channels return a single owner, so re-sorting is a no-op there;
   // tag/format channels (e.g. GGUF) and plain browsing still float unsloth first.
   const sortingDisabled =
-    !pinUnslothFirst || isPublisherQuery || trimmed || Boolean(channelOwner);
+    !ping4fFirst || isPublisherQuery || trimmed || Boolean(channelOwner);
   const { results, nextCache } = useMemo(() => {
     let results: HfModelResult[];
     let nextCache = stableCache;

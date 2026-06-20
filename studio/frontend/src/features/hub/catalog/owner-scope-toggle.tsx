@@ -6,12 +6,12 @@ import { HubOptionMenu } from "./hub-option-menu";
 export type OwnerScope = "unsloth" | "all";
 
 const OPTIONS: { value: OwnerScope; label: string }[] = [
-  { value: "unsloth", label: "Unsloth" },
+  { value: "unsloth", label: "g4f" },
   { value: "all", label: "All" },
 ];
 
 /**
- * "Unsloth / All" publisher scope as a compact dropdown pill beside the
+ * "g4f / All" publisher scope as a compact dropdown pill beside the
  * view-mode tabs. Only shown while browsing a model list, never on the hub feed.
  */
 export function OwnerScopeToggle({

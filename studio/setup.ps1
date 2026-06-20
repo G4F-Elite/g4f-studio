@@ -3,7 +3,7 @@
 # Copyright 2026-present the Unsloth AI Inc. team. All rights reserved. See /studio/LICENSE.AGPL-3.0
 <#
 .SYNOPSIS
-    Full environment setup for Unsloth Studio on Windows (bundled version).
+    Full environment setup for g4f Studio on Windows (bundled version).
 .DESCRIPTION
     Always installs Node.js if needed. When running from pip install:
     skips frontend build (already bundled). When running from git repo:
@@ -630,10 +630,10 @@ function substep {
 # ─────────────────────────────────────────────
 Write-Host ""
 if ($script:StudioVtOk -and -not $env:NO_COLOR) {
-    Write-Host ("  " + (Get-StudioAnsi Title) + [char]::ConvertFromUtf32(0x1F9A5) + " Unsloth Studio Setup" + (Get-StudioAnsi Reset))
+    Write-Host ("  " + (Get-StudioAnsi Title) + [char]::ConvertFromUtf32(0x1F9A5) + " g4f Studio Setup" + (Get-StudioAnsi Reset))
     Write-Host ("  {0}{1}{2}" -f (Get-StudioAnsi Dim), $Rule, (Get-StudioAnsi Reset))
 } else {
-    Write-Host ("  " + [char]::ConvertFromUtf32(0x1F9A5) + " Unsloth Studio Setup") -ForegroundColor Green
+    Write-Host ("  " + [char]::ConvertFromUtf32(0x1F9A5) + " g4f Studio Setup") -ForegroundColor Green
     Write-Host "  $Rule" -ForegroundColor DarkGray
 }
 
@@ -2139,7 +2139,7 @@ if ((Test-Path -LiteralPath $VenvDir -PathType Container) -and -not $NoTorchMode
             -not (Test-Path -LiteralPath (Join-Path $StudioHome "share\studio.conf") -PathType Leaf) -and
             -not (Test-Path -LiteralPath (Join-Path $StudioHome "bin\unsloth.exe") -PathType Leaf)
         ) {
-            Write-Host "[ERROR] $VenvDir already exists but does not look like an Unsloth Studio install." -ForegroundColor Red
+            Write-Host "[ERROR] $VenvDir already exists but does not look like an g4f Studio install." -ForegroundColor Red
             Write-Host "        Move it aside or choose an empty UNSLOTH_STUDIO_HOME before re-running." -ForegroundColor Yellow
             exit 1
         }
@@ -3431,7 +3431,7 @@ if (-not $NeedLlamaSourceBuild) {
 # ─────────────────────────────────────────────
 # Footer
 # ─────────────────────────────────────────────
-$DoneLabel = if ($env:SKIP_STUDIO_BASE -eq "1") { "Unsloth Studio Setup Complete" } else { "Unsloth Studio Updated" }
+$DoneLabel = if ($env:SKIP_STUDIO_BASE -eq "1") { "g4f Studio Setup Complete" } else { "g4f Studio Updated" }
 if ($script:StudioVtOk -and -not $env:NO_COLOR) {
     Write-Host ("  {0}{1}{2}" -f (Get-StudioAnsi Dim), $Rule, (Get-StudioAnsi Reset))
     if ($script:LlamaCppDegraded) {

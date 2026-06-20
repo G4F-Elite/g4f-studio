@@ -104,7 +104,7 @@ export function useDiscoverSearch({
     accessToken,
     sortBy,
     sortDirection: direction,
-    pinUnslothFirst: true,
+    ping4fFirst: true,
     ownerScope,
     enabled: online && isDiscoverTab && !isDatasetMode,
     keepUnsupportedTags: true,

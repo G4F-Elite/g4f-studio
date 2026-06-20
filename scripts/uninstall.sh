@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 # Copyright 2026-present the Unsloth AI Inc. team. All rights reserved. See /studio/LICENSE.AGPL-3.0
 #
-# Unsloth Studio uninstaller (macOS / Linux / WSL).
+# g4f Studio uninstaller (macOS / Linux / WSL).
 # Stops running servers and removes install dir, launcher data,
 # CLI shim, desktop shortcut, .app bundle, and Launch Services entry.
 # Honors custom roots set via UNSLOTH_STUDIO_HOME / STUDIO_HOME at
@@ -195,7 +195,7 @@ _os=$(uname 2>/dev/null || echo unknown)
 _is_wsl=0
 [ "$_os" = "Linux" ] && grep -qi microsoft /proc/version 2>/dev/null && _is_wsl=1
 
-echo "Stopping any running Unsloth Studio servers..."
+echo "Stopping any running g4f Studio servers..."
 _pkill_studio
 
 echo "Removing data and install directories..."
@@ -232,9 +232,9 @@ _remove_path "$HOME/.local/share/unsloth"
 _remove_cli_shim
 
 echo "Removing desktop shortcut and launcher lock..."
-# install.sh creates Desktop/Unsloth Studio as a symlink. If the user has an
+# install.sh creates Desktop/g4f Studio as a symlink. If the user has an
 # unrelated regular directory by that name, leave it alone.
-_desktop_link="$HOME/Desktop/Unsloth Studio"
+_desktop_link="$HOME/Desktop/g4f Studio"
 if [ -L "$_desktop_link" ] || [ ! -e "$_desktop_link" ]; then
     _remove_path "$_desktop_link"
 else
@@ -250,20 +250,20 @@ done
 case "$_os" in
     Darwin)
         echo "Removing macOS .app bundle and Launch Services entry..."
-        _remove_path "$HOME/Applications/Unsloth Studio.app"
+        _remove_path "$HOME/Applications/g4f Studio.app"
         _lsr="/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister"
         if [ -x "$_lsr" ]; then
-            "$_lsr" -u "$HOME/Applications/Unsloth Studio.app" 2>/dev/null || true
+            "$_lsr" -u "$HOME/Applications/g4f Studio.app" 2>/dev/null || true
         fi
         ;;
     Linux)
         if [ "$_is_wsl" = "1" ]; then
             echo "Removing WSL Windows-side shortcuts..."
-            # install.sh creates per-distro 'Unsloth Studio (WSL - <distro>).lnk'
+            # install.sh creates per-distro 'g4f Studio (WSL - <distro>).lnk'
             # on the Windows Desktop + Start Menu via powershell.exe. Scope removal
             # to THIS distro (passed as $args[0]) so a multi-distro install keeps the
             # other distros' launchers; the TARGET=wsl.exe check still spares a
-            # native install's "Unsloth Studio.lnk". Prefer powershell.exe; test it
+            # native install's "g4f Studio.lnk". Prefer powershell.exe; test it
             # can EXECUTE (`command -v` succeeds even with interop OFF -- .exe then
             # fails "Exec format error", common on systemd-enabled distros).
             _wsl_distro="${WSL_DISTRO_NAME:-}"
@@ -283,7 +283,7 @@ case "$_os" in
                     $ws = New-Object -ComObject WScript.Shell;
                     foreach ($d in $dirs) {
                         if (-not $d -or -not (Test-Path -LiteralPath $d)) { continue }
-                        Get-ChildItem -LiteralPath $d -Filter "Unsloth Studio*.lnk" -ErrorAction SilentlyContinue | ForEach-Object {
+                        Get-ChildItem -LiteralPath $d -Filter "g4f Studio*.lnk" -ErrorAction SilentlyContinue | ForEach-Object {
                             try {
                                 $sc = $ws.CreateShortcut($_.FullName);
                                 if ("$($sc.TargetPath) $($sc.Arguments)" -notmatch "wsl\.exe") { return }
@@ -291,7 +291,7 @@ case "$_os" in
                                 # name for this distro or its -d "<distro>" argument
                                 # so launchers for other distros are not removed.
                                 if ($distro) {
-                                    $nameMatch = ($_.Name -eq "Unsloth Studio (WSL - $distro).lnk");
+                                    $nameMatch = ($_.Name -eq "g4f Studio (WSL - $distro).lnk");
                                     $argMatch  = ($sc.Arguments -match ("-d\s+`"?" + [regex]::Escape($distro) + "`"?"));
                                     if (-not ($nameMatch -or $argMatch)) { return }
                                 }
@@ -301,8 +301,8 @@ case "$_os" in
                     }' >/dev/null 2>&1 || true
             fi
             # Fallback when powershell.exe can't run (interop disabled): remove the
-            # WSL .lnk files via drvfs. The "Unsloth Studio (WSL..." name is
-            # WSL-specific, so a native install's "Unsloth Studio.lnk" never matches.
+            # WSL .lnk files via drvfs. The "g4f Studio (WSL..." name is
+            # WSL-specific, so a native install's "g4f Studio.lnk" never matches.
             if [ "$_ps_ran" = "0" ]; then
                 for _drive in /mnt/c /mnt/d /mnt/e; do
                     [ -d "$_drive/Users" ] || continue
@@ -316,11 +316,11 @@ case "$_os" in
                             [ -d "$_scdir" ] || continue
                             if [ -n "$_wsl_distro" ]; then
                                 # Exact per-distro name (no glob) so other distros survive.
-                                _lnk="$_scdir/Unsloth Studio (WSL - ${_wsl_distro}).lnk"
+                                _lnk="$_scdir/g4f Studio (WSL - ${_wsl_distro}).lnk"
                                 [ -e "$_lnk" ] && rm -f "$_lnk" 2>/dev/null && echo "  removed: $_lnk" || true
                             else
                                 # Distro unknown: fall back to the broad WSL prefix.
-                                for _lnk in "$_scdir"/"Unsloth Studio (WSL"*.lnk; do
+                                for _lnk in "$_scdir"/"g4f Studio (WSL"*.lnk; do
                                     [ -e "$_lnk" ] && rm -f "$_lnk" 2>/dev/null && echo "  removed: $_lnk" || true
                                 done
                             fi
@@ -365,7 +365,7 @@ case "$_os" in
 esac
 
 echo ""
-echo "Unsloth Studio uninstalled."
+echo "g4f Studio uninstalled."
 echo "Note: Hugging Face model cache at ~/.cache/huggingface was left in place."
 echo "Remove it manually with 'rm -rf ~/.cache/huggingface/hub' if desired."
 # Env-mode installs leave no breadcrumb in $HOME, so a custom root can
@@ -373,7 +373,7 @@ echo "Remove it manually with 'rm -rf ~/.cache/huggingface/hub' if desired."
 # neither var is set so the bare `curl | sh` flow doesn't silently miss.
 if [ -z "${UNSLOTH_STUDIO_HOME:-}" ] && [ -z "${STUDIO_HOME:-}" ]; then
     echo ""
-    echo "If you installed Unsloth Studio with UNSLOTH_STUDIO_HOME or STUDIO_HOME"
+    echo "If you installed g4f Studio with UNSLOTH_STUDIO_HOME or STUDIO_HOME"
     echo "pointing at a custom directory, re-run this script with the same variable"
     echo "set to also remove that install tree, e.g.:"
     echo "  UNSLOTH_STUDIO_HOME=/your/path sh -c \"\$(curl -fsSL https://raw.githubusercontent.com/unslothai/unsloth/main/scripts/uninstall.sh)\""

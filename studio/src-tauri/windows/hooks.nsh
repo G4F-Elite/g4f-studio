@@ -1,4 +1,4 @@
-; Unsloth Studio NSIS installer hooks
+; g4f Studio NSIS installer hooks
 
 !macro NSIS_HOOK_POSTUNINSTALL
   ; Desktop uninstall must not remove $PROFILE\.unsloth. The CLI/web

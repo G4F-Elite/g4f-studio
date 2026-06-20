@@ -356,7 +356,7 @@ export async function exportConversationShareGPT(threadId: string): Promise<void
 }
 
 // OpenAI/ChatML JSONL: {"messages": [{"role","content"}, ...]} per conversation;
-// Unsloth reads this as a ChatML dataset.
+// g4f reads this as a ChatML dataset.
 export async function exportConversationRawJsonl(threadId: string): Promise<void> {
   const messages = await loadConversationMessages(threadId);
   if (!messages) return;
@@ -405,7 +405,7 @@ async function buildThreadContent(
   if (!messages) return null;
 
   if (format === "jsonl-raw") {
-    // OpenAI/ChatML: Unsloth reads the "messages" key as ChatML.
+    // OpenAI/ChatML: g4f reads the "messages" key as ChatML.
     const oaiMsgs: OAIMessage[] = messages.flatMap((msg) => messageToOpenAI(msg));
     if (oaiMsgs.length === 0) return null;
     return JSON.stringify({ messages: oaiMsgs });
@@ -1155,7 +1155,7 @@ function ExportModal({
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold leading-none">Training Style</p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    ShareGPT format for Unsloth fine-tuning
+                    ShareGPT format for g4f fine-tuning
                   </p>
                   <code className="mt-2 block w-full truncate rounded-md bg-muted px-2 py-1 font-mono text-[10px] text-muted-foreground/60">
                     {`{"conversations":[{"from":"human","value":"..."},{"from":"gpt","value":""}]}`}

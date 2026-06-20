@@ -181,7 +181,7 @@ def _check_fake_home_clean(fake_home: Path) -> None:
         ".unsloth",
         Path(".local") / "share" / "applications" / "unsloth-studio.desktop",
         Path("Desktop") / "unsloth-studio.desktop",
-        Path("Applications") / "Unsloth Studio.app",
+        Path("Applications") / "g4f Studio.app",
     ]
     leaked = [str(p) for p in forbidden if (fake_home / p).exists()]
     if leaked:

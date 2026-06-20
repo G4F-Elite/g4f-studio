@@ -21,10 +21,10 @@ export const en = {
   shell: {
     beta: "BETA",
     brand: "unsloth",
-    product: "Unsloth Studio",
+    product: "g4f Studio",
     accountMenu: "{name} account menu",
     aria: {
-      home: "Unsloth home",
+      home: "g4f home",
       closeSidebar: "Close sidebar",
       openSidebar: "Open sidebar",
       chatOptions: "Chat options",
@@ -84,7 +84,7 @@ export const en = {
     title: "Settings",
     dialog: {
       title: "Settings",
-      description: "Manage your Unsloth preferences.",
+      description: "Manage your g4f preferences.",
       closeAriaLabel: "Close settings",
     },
     tabs: {
@@ -98,7 +98,7 @@ export const en = {
     },
     general: {
       title: "General",
-      description: "Global preferences for Unsloth.",
+      description: "Global preferences for g4f.",
       account: "Account",
       huggingFaceToken: "Hugging Face token",
       huggingFaceTokenDescription:
@@ -155,16 +155,16 @@ export const en = {
         action: "Reset preferences",
         confirmTitle: "Reset all local preferences?",
         confirmDescription:
-          "Clears local-only preferences and reloads Unsloth. Chats, API access, and DB-backed settings are kept.",
+          "Clears local-only preferences and reloads g4f. Chats, API access, and DB-backed settings are kept.",
         confirmAction: "Reset and reload",
       },
     },
     profile: {
       title: "Profile",
-      description: "How your profile appears in Unsloth.",
+      description: "How your profile appears in g4f.",
       changePicture: "Change profile picture",
       displayName: "Display name",
-      nickname: "What should Unsloth call you?",
+      nickname: "What should g4f call you?",
       nicknamePlaceholder: "Nickname",
       nicknameSaved: "Preferred name saved",
       avatarShape: "Profile picture shape",
@@ -184,7 +184,7 @@ export const en = {
     },
     appearance: {
       title: "Appearance",
-      description: "How Unsloth Studio looks on this device.",
+      description: "How g4f Studio looks on this device.",
       theme: {
         title: "Theme",
         label: "Color scheme",
@@ -196,7 +196,7 @@ export const en = {
       language: {
         title: "Language",
         label: "Display language",
-        description: "The language used by Unsloth.",
+        description: "The language used by g4f.",
       },
       layout: {
         title: "Layout",
@@ -284,7 +284,7 @@ export const en = {
     apiKeys: {
       title: "API",
       description:
-        "Access Unsloth via the OpenAI-compatible API.",
+        "Access g4f via the OpenAI-compatible API.",
       readDocs: "Read the API docs",
       noAccess: "No API access yet.",
       newBadge: "New",
@@ -311,7 +311,7 @@ export const en = {
       osWindows: "Windows",
       secureHttps: "Secure HTTPS",
       secureHttpsHint:
-        "The 0.0.0.0 port is still reachable globally. For full security, launch Unsloth Studio with --secure to expose only this HTTPS link.",
+        "The 0.0.0.0 port is still reachable globally. For full security, launch g4f Studio with --secure to expose only this HTTPS link.",
       copyTunnelUrl: "Copy tunnel URL",
       copySnippet: "Copy snippet",
       copy: "Copy",
@@ -342,7 +342,7 @@ export const en = {
       title: "About",
       description:
         "Docs, release notes, feedback, and build info.",
-      studioVersion: "Unsloth Version",
+      studioVersion: "g4f Version",
       packageVersion: "Package Version",
       llamaCppVersion: "llama.cpp Version",
       hardware: "Hardware",
@@ -358,28 +358,28 @@ export const en = {
       reportIssue: "Report an issue",
       license: {
         sectionTitle: "License",
-        studioLabel: "Unsloth Studio",
+        studioLabel: "g4f Studio",
         studioLicense: "AGPL-3.0",
         studioDescription:
           "Open source under the GNU AGPL v3.0.",
-        libraryLabel: "Unsloth Core",
+        libraryLabel: "g4f Core",
         libraryLicense: "Apache-2.0",
         libraryDescription: "Licensed under Apache 2.0.",
       },
       dangerZone: "Danger zone",
-      shutDownStudio: "Shut down Unsloth Studio",
+      shutDownStudio: "Shut down g4f Studio",
       shutDownStudioDescription:
-        "Stops the Unsloth server and ends your session.",
+        "Stops the g4f server and ends your session.",
       shutDown: "Shut down",
       update: {
-        title: "Update Unsloth Studio",
+        title: "Update g4f Studio",
         commandText: "{label} text",
         copied: "Copied",
         copyCommand: "Copy command",
         commandCopied: "{label} copied",
         copyNamedCommand: "Copy {label}",
-        checkingInstall: "Checking how Unsloth was installed...",
-        installIntro: "To install or update Unsloth:",
+        checkingInstall: "Checking how g4f was installed...",
+        installIntro: "To install or update g4f:",
         localUpdateHeading: "Local update",
         installCommandUnix: "macOS/Linux install command",
         installCommandWindows: "Windows install command",
@@ -392,11 +392,11 @@ export const en = {
           "Source or VCS package install detected. Reinstall from the original local path or Git URL.",
         repoCheckoutFallback:
           "If you still have the repo checkout, run the local installer from it:",
-        restartAfterUpdate: "Restart Unsloth after updating.",
+        restartAfterUpdate: "Restart g4f after updating.",
         desktopManaged:
           "The desktop app keeps its bundled backend updated and will prompt when a new version is available.",
         unknownInstall:
-          "Could not detect how Unsloth was installed. For installer or PyPI installs, use the commands above.",
+          "Could not detect how g4f was installed. For installer or PyPI installs, use the commands above.",
         localCheckout:
           "For local checkout installs, run the local installer from that checkout:",
         docs: "Install docs:",

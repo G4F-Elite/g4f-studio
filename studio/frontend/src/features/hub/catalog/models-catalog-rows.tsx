@@ -15,7 +15,7 @@ import {
   listGgufVariants,
   useGgufVariantsCacheVersion,
 } from "@/features/hub/inventory";
-import { classifyUnslothSupport } from "@/features/hub/hooks/use-hub-model-search";
+import { classifyg4fSupport } from "@/features/hub/hooks/use-hub-model-search";
 import { formatBytes, formatRelativeShort } from "@/features/hub/lib/format";
 import { ggufVariantDisplayLabel } from "@/features/hub/lib/gguf-variant-sort";
 import { modelIdsMatch } from "@/features/hub/lib/model-identity";
@@ -430,7 +430,7 @@ export const DiscoverModelRow = memo(function DiscoverModelRow({
     () =>
       isDataset
         ? null
-        : classifyUnslothSupport({
+        : classifyg4fSupport({
             modelId: row.id,
             pipelineTag: row.result.pipelineTag,
             tags: row.result.tags,
@@ -514,7 +514,7 @@ export const DiscoverModelRow = memo(function DiscoverModelRow({
               <span className="truncate">{row.owner}</span>
               {row.owner.toLowerCase() === "unsloth" && (
                 <span
-                  aria-label="Verified Unsloth"
+                  aria-label="Verified g4f"
                   className="hub-verified-badge size-3.5 shrink-0 text-primary"
                 />
               )}
@@ -585,7 +585,7 @@ export const InventoryRow = memo(function InventoryRow({
   const unsupported = useMemo(() => {
     if (isDataset) return false;
     return (
-      classifyUnslothSupport({
+      classifyg4fSupport({
         modelId: rowModelId,
         pipelineTag: row.pipelineTag,
         tags: rowTagsSignature ? rowTagsSignature.split("\u0001") : undefined,
@@ -711,7 +711,7 @@ export const InventoryRow = memo(function InventoryRow({
       <span className="truncate">{subLabel}</span>
       {subLabel.toLowerCase() === "unsloth" && (
         <span
-          aria-label="Verified Unsloth"
+          aria-label="Verified g4f"
           className="hub-verified-badge size-3.5 shrink-0 text-primary"
         />
       )}
@@ -788,7 +788,7 @@ export const InventoryRow = memo(function InventoryRow({
                 <span className="truncate">{subLabel}</span>
                 {subLabel.toLowerCase() === "unsloth" && (
                   <span
-                    aria-label="Verified Unsloth"
+                    aria-label="Verified g4f"
                     className="hub-verified-badge size-3 shrink-0 text-primary"
                   />
                 )}

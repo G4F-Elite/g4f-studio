@@ -364,7 +364,7 @@ print_installed_llama_prebuilt_release() {
 
 # ── Banner ──
 echo ""
-printf "  ${C_TITLE}%s${C_RST}\n" "🦥 Unsloth Studio Setup"
+printf "  ${C_TITLE}%s${C_RST}\n" "🦥 g4f Studio Setup"
 printf "  ${C_DIM}%s${C_RST}\n" "$RULE"
 verbose_substep "verbose diagnostics enabled"
 _LLAMA_ONLY="${UNSLOTH_STUDIO_LLAMA_ONLY:-0}"
@@ -1709,9 +1709,9 @@ elif [ "$IS_COLAB" = true ]; then
     echo ""
     printf "  ${C_DIM}%s${C_RST}\n" "$RULE"
     if [ "$_LLAMA_CPP_DEGRADED" = true ]; then
-        printf "  ${C_WARN}%s${C_RST}\n" "Unsloth Studio Setup Complete (limited: llama.cpp unavailable)"
+        printf "  ${C_WARN}%s${C_RST}\n" "g4f Studio Setup Complete (limited: llama.cpp unavailable)"
     else
-        printf "  ${C_TITLE}%s${C_RST}\n" "Unsloth Studio Setup Complete"
+        printf "  ${C_TITLE}%s${C_RST}\n" "g4f Studio Setup Complete"
     fi
     printf "  ${C_DIM}%s${C_RST}\n" "$RULE"
     substep "from colab import start"
@@ -1719,9 +1719,9 @@ elif [ "$IS_COLAB" = true ]; then
 else
     printf "  ${C_DIM}%s${C_RST}\n" "$RULE"
     if [ "$_LLAMA_CPP_DEGRADED" = true ]; then
-        printf "  ${C_WARN}%s${C_RST}\n" "Unsloth Studio Installed (limited: llama.cpp unavailable)"
+        printf "  ${C_WARN}%s${C_RST}\n" "g4f Studio Installed (limited: llama.cpp unavailable)"
     else
-        printf "  ${C_TITLE}%s${C_RST}\n" "Unsloth Studio Installed"
+        printf "  ${C_TITLE}%s${C_RST}\n" "g4f Studio Installed"
     fi
     printf "  ${C_DIM}%s${C_RST}\n" "$RULE"
     if [ "$_LLAMA_CPP_DEGRADED" = true ]; then

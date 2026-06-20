@@ -131,7 +131,7 @@ jobs:
       - name: Uninstall and verify clean
         # Round-trip through scripts/uninstall.sh on real macOS. As a side
         # effect this exercises the macOS-only .app bundle + Launch Services
-        # removal path (~/Applications/Unsloth Studio.app, lsregister -u)
+        # removal path (~/Applications/g4f Studio.app, lsregister -u)
         # which is not testable from a Linux runner. Skips gracefully if
         # scripts/uninstall.sh has not landed yet (lets this workflow merge
         # before #5497).
@@ -147,8 +147,8 @@ jobs:
           for p in \
             "$HOME/.unsloth/studio" \
             "$HOME/.local/share/unsloth" \
-            "$HOME/Applications/Unsloth Studio.app" \
-            "$HOME/Desktop/Unsloth Studio.app" \
+            "$HOME/Applications/g4f Studio.app" \
+            "$HOME/Desktop/g4f Studio.app" \
             "$HOME/.local/bin/unsloth"; do
             if [ -e "$p" ] || [ -L "$p" ]; then
               echo "::error::leak: $p"

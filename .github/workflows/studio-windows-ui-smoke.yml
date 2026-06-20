@@ -142,7 +142,7 @@ jobs:
         # Kaspersky-flagged file), not merely stops generating it.
         shell: pwsh
         run: |
-          $appDir = Join-Path $env:LOCALAPPDATA 'Unsloth Studio'
+          $appDir = Join-Path $env:LOCALAPPDATA 'g4f Studio'
           New-Item -ItemType Directory -Force -Path $appDir | Out-Null
           Set-Content -LiteralPath (Join-Path $appDir 'launch-studio.vbs') -Value 'WScript.Echo "legacy"' -Encoding Unicode
           Write-Host "seeded legacy launch-studio.vbs at $appDir"
@@ -210,18 +210,18 @@ jobs:
         # pointing anywhere other than hidden PowerShell over launch-studio.ps1.
         shell: pwsh
         run: |
-          $appDir = Join-Path $env:LOCALAPPDATA 'Unsloth Studio'
+          $appDir = Join-Path $env:LOCALAPPDATA 'g4f Studio'
           if (Test-Path -LiteralPath (Join-Path $appDir 'launch-studio.vbs')) {
             throw "regression: launch-studio.vbs exists (the Kaspersky VBS-FP shape)"
           }
           if (-not (Test-Path -LiteralPath (Join-Path $appDir 'launch-studio.ps1'))) {
             throw "missing launch-studio.ps1 in $appDir"
           }
-          $lnk = Join-Path ([Environment]::GetFolderPath('Desktop')) 'Unsloth Studio.lnk'
+          $lnk = Join-Path ([Environment]::GetFolderPath('Desktop')) 'g4f Studio.lnk'
           if (-not (Test-Path -LiteralPath $lnk)) {
-            $lnk = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Unsloth Studio.lnk'
+            $lnk = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\g4f Studio.lnk'
           }
-          if (-not (Test-Path -LiteralPath $lnk)) { throw "no Unsloth Studio.lnk on Desktop or Start Menu" }
+          if (-not (Test-Path -LiteralPath $lnk)) { throw "no g4f Studio.lnk on Desktop or Start Menu" }
           $sc = (New-Object -ComObject WScript.Shell).CreateShortcut($lnk)
           Write-Host "shortcut target: $($sc.TargetPath)"
           Write-Host "shortcut args:   $($sc.Arguments)"
@@ -240,9 +240,9 @@ jobs:
         # there is no conflict, and we tear this server down before they boot.
         shell: pwsh
         run: |
-          $lnk = Join-Path ([Environment]::GetFolderPath('Desktop')) 'Unsloth Studio.lnk'
+          $lnk = Join-Path ([Environment]::GetFolderPath('Desktop')) 'g4f Studio.lnk'
           if (-not (Test-Path -LiteralPath $lnk)) {
-            $lnk = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\Unsloth Studio.lnk'
+            $lnk = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\g4f Studio.lnk'
           }
           $sc = (New-Object -ComObject WScript.Shell).CreateShortcut($lnk)
           Write-Host "launching: $($sc.TargetPath) $($sc.Arguments)"

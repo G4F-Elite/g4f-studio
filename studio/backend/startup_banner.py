@@ -49,7 +49,7 @@ def print_studio_stop_hint() -> None:
             [
                 "",
                 style(
-                    "  To stop Unsloth Studio: press Ctrl+C in this terminal.",
+                    "  To stop g4f Studio: press Ctrl+C in this terminal.",
                     stop_hint_style,
                 ),
                 style("  (On macOS this is Control+C, not Command+C.)", dim),
@@ -106,7 +106,7 @@ def print_studio_access_banner(
 
     lines: list[str] = [
         "",
-        style("🦥 Unsloth Studio is running", title),
+        style("🦥 g4f Studio is running", title),
         style("─" * 52, dim),
         style("  On this machine -- open this in your browser:", dim),
         style(f"    {primary_url}", local_url_style),
@@ -184,7 +184,7 @@ def print_studio_access_banner(
             [
                 "",
                 style(
-                    "  To stop Unsloth Studio: press Ctrl+C in this terminal.",
+                    "  To stop g4f Studio: press Ctrl+C in this terminal.",
                     stop_hint_style,
                 ),
                 style("  (On macOS this is Control+C, not Command+C.)", dim),

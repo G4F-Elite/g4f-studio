@@ -939,7 +939,7 @@ export function AppSidebar() {
           >
             <img
               src="/circle-logo-small.png"
-              alt="Unsloth"
+              alt="g4f"
               className="h-[34px] w-[34px] rounded-full object-cover"
             />
             <span className="font-heading text-[21px] font-semibold tracking-[0em] dark:tracking-[0.02em] leading-none text-black dark:text-white">
@@ -1344,7 +1344,7 @@ export function AppSidebar() {
                   </div>
                   <div className="flex flex-col gap-px leading-tight group-data-[collapsible=icon]:hidden">
                     <span className="truncate font-heading text-[13.5px] tracking-[0.025em] dark:tracking-[0.04em] font-semibold text-nav-fg">{displayTitle}</span>
-                    <span className="truncate text-[11.5px] tracking-nav text-muted-foreground">Unsloth</span>
+                    <span className="truncate text-[11.5px] tracking-nav text-muted-foreground">g4f</span>
                   </div>
                   {/* settings cog (replaces the up/down chevron) */}
                   <HugeiconsIcon

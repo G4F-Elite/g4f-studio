@@ -1,6 +1,6 @@
 {
-  "productName": "Unsloth Studio (Desktop)",
-  "identifier": "ai.unsloth.studio",
+  "productName": "g4f Studio (Desktop)",
+  "identifier": "studio.g4f",
   "build": {
     "beforeDevCommand": {
       "cwd": "../frontend",
@@ -21,7 +21,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "Unsloth Studio (Desktop)",
+        "title": "g4f Studio (Desktop)",
         "width": 690,
         "height": 480,
         "center": true,
@@ -44,9 +44,9 @@
   "bundle": {
     "active": true,
     "createUpdaterArtifacts": true,
-    "publisher": "Unsloth AI",
+    "publisher": "g4f",
     "homepage": "https://unsloth.ai/",
-    "copyright": "© 2026 Unsloth AI. All rights reserved.",
+    "copyright": "© 2026 g4f. All rights reserved.",
     "license": "AGPL-3.0-only",
     "targets": ["app", "appimage", "deb", "dmg", "nsis"],
     "resources": {

@@ -88,7 +88,7 @@ def test_env_mode_blocks_unsloth_studio_without_sentinels(tmp_path):
         "env-mode without sentinels must refuse to rm -rf $VENV_DIR; "
         f"stdout={res.stdout!r} stderr={res.stderr!r}"
     )
-    assert "does not look like an Unsloth Studio install" in res.stderr
+    assert "does not look like an g4f Studio install" in res.stderr
     assert (studio_home / "unsloth_studio" / "bin" / "python").is_file()
 
 

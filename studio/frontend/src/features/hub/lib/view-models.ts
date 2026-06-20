@@ -21,7 +21,7 @@ import { ownerOf, repoOf } from "@/features/hub/lib/format";
 import { estimateSizeFromDtypes, isGgufLike } from "./hf-model-meta";
 export {
   detectResultFormat,
-  isUnslothFinetunable,
+  isg4fFinetunable,
   matchesFormat,
 } from "./format-filters";
 export {

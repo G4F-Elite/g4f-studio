@@ -26,16 +26,16 @@ export interface ChannelPreset {
   idSuffix?: string;
   format: ModelFormatFilter;
   sort: HfSortKey;
-  // Keep only formats Unsloth can fine-tune (drops fp8, nvfp4, w4a16, etc.).
+  // Keep only formats g4f can fine-tune (drops fp8, nvfp4, w4a16, etc.).
   finetunableOnly?: boolean;
 }
 
 export const CHANNEL_PRESETS: readonly ChannelPreset[] = [
   {
     id: "unsloth-trending",
-    label: "Unsloth Trending",
+    label: "g4f Trending",
     icon: SparklesIcon,
-    hint: "Most trending models published by Unsloth.",
+    hint: "Most trending models published by g4f.",
     owner: "unsloth",
     tags: ["gguf"],
     format: "gguf",
@@ -43,9 +43,9 @@ export const CHANNEL_PRESETS: readonly ChannelPreset[] = [
   },
   {
     id: "unsloth-latest",
-    label: "Latest Unsloth",
+    label: "Latest g4f",
     icon: NewReleasesIcon,
-    hint: "Freshly released models from the Unsloth channel.",
+    hint: "Freshly released models from the g4f channel.",
     owner: "unsloth",
     format: "all",
     sort: "lastModified",
@@ -89,7 +89,7 @@ export const CHANNEL_TO_SECTION: Record<ChannelId, HubSection> = {
 
 export const HUB_SECTION_TITLE: Record<HubSection, string> = {
   trending: "Trending Now",
-  latest: "Latest Unsloth Models",
+  latest: "Latest g4f Models",
   finetune: "Fine-tune Ready",
 };
 

@@ -86,7 +86,7 @@ def _resolve_external_ip() -> str:
 def _install_uvicorn_startup_log_rewrite(bind_host: str, display_host: str) -> None:
     """Rewrite Uvicorn's startup log line: swap wildcard bind for the
     externally-reachable address, use our Mac-aware stop hint, and rename the
-    prefix to "Unsloth Studio running on"."""
+    prefix to "g4f Studio running on"."""
     import logging
     import re
 
@@ -96,7 +96,7 @@ def _install_uvicorn_startup_log_rewrite(bind_host: str, display_host: str) -> N
     new_suffix = "(To stop: press Ctrl+C -- on macOS, Control+C not Command+C)"
     old_suffix_re = re.compile(r"\(Press CTRL\+C to quit\)")
     old_prefix = "Uvicorn running on "
-    new_prefix = "Unsloth Studio running on "
+    new_prefix = "g4f Studio running on "
 
     def _rewrite(text: str) -> str:
         if text.startswith(old_prefix):
@@ -378,7 +378,7 @@ def _verify_global_reachability(display_host: str, port: int) -> None:
             local_url = _working_local_url(port)
             if local_url:
                 print(
-                    f"{local_url_c}  You can access Unsloth Studio locally "
+                    f"{local_url_c}  You can access g4f Studio locally "
                     f"in the meantime: {local_url}{reset}",
                     flush = True,
                 )
@@ -429,7 +429,7 @@ def _emit_tool_policy_notice(host: str, secure: bool, enable_tools: "Optional[bo
 def _emit_secure_startup_output(port: int, enable_tools: "Optional[bool]" = None) -> None:
     """Secure-mode banner: only the Cloudflare link (loopback has no public raw URL)."""
     print("")
-    print("🦥 Unsloth Studio is running (secure)")
+    print("🦥 g4f Studio is running (secure)")
     print("─" * 52)
     _print_cloudflare_line()
     print(f"  On this machine only: http://127.0.0.1:{port}/")
@@ -984,7 +984,7 @@ def run_server(
                 print(f"Port {original_port} is already in use by " f"{name} (PID {pid}).")
             else:
                 print(f"Port {original_port} is already in use.")
-            print(f"Unsloth Studio will use port {port} instead.")
+            print(f"g4f Studio will use port {port} instead.")
             print(f"Open http://localhost:{port} in your browser.")
             print("=" * 50)
             print("")
@@ -1280,7 +1280,7 @@ if __name__ == "__main__":
     except Exception:
         sys.stderr.write("\n")
         sys.stderr.write("=" * 60 + "\n")
-        sys.stderr.write("ERROR: Unsloth Studio failed to start.\n")
+        sys.stderr.write("ERROR: g4f Studio failed to start.\n")
         sys.stderr.write("=" * 60 + "\n")
         traceback.print_exc(file = sys.stderr)
         sys.stderr.write("\n")
