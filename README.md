@@ -6,7 +6,7 @@
   </picture></a>
 </h1>
 <h3 align="center" style="margin: 0; margin-top: 0;">
-Unsloth Studio lets you run and train models locally.
+g4f Studio lets you run and train models locally.
 </h3>
 
 <p align="center">
@@ -17,7 +17,7 @@ Unsloth Studio lets you run and train models locally.
 </p>
 <br>
 <a href="https://unsloth.ai/docs/new/studio">
-<img alt="unsloth studio ui homepage" src="https://github.com/user-attachments/assets/53ae17a9-d975-44ef-9686-efb4ebd0454d" style="max-width: 100%; margin-bottom: 0;"></a>
+<img alt="g4f Studio ui homepage" src="https://github.com/user-attachments/assets/53ae17a9-d975-44ef-9686-efb4ebd0454d" style="max-width: 100%; margin-bottom: 0;"></a>
 
 ## ⚡ Get started
 
@@ -36,7 +36,7 @@ irm https://unsloth.ai/install.ps1 | iex
 - [Reddit](https://reddit.com/r/unsloth)
 
 ## ⭐ Features
-Unsloth Studio (Beta) lets you run and train text, [audio](https://unsloth.ai/docs/basics/text-to-speech-tts-fine-tuning), [embedding](https://unsloth.ai/docs/new/embedding-finetuning), [vision](https://unsloth.ai/docs/basics/vision-fine-tuning) models on Windows, Linux and macOS.
+g4f Studio (Beta) lets you run and train text, [audio](https://unsloth.ai/docs/basics/text-to-speech-tts-fine-tuning), [embedding](https://unsloth.ai/docs/new/embedding-finetuning), [vision](https://unsloth.ai/docs/basics/vision-fine-tuning) models on Windows, Linux and macOS.
 
 ### Inference
 * **Search + download + run models** including GGUF, LoRA adapters, safetensors
@@ -57,10 +57,10 @@ Unsloth Studio (Beta) lets you run and train text, [audio](https://unsloth.ai/do
 * [Multi-GPU](https://unsloth.ai/docs/basics/multi-gpu-training-with-unsloth) training is supported, with major improvements coming soon.
 
 ## 📥 Install
-Unsloth can be used in two ways: through **[Unsloth Studio](https://unsloth.ai/docs/new/studio/)**, the web UI, or through **Unsloth Core**, the code-based version. Each has different requirements.
+Unsloth can be used in two ways: through **[g4f Studio](https://unsloth.ai/docs/new/studio/)**, the web UI, or through **Unsloth Core**, the code-based version. Each has different requirements.
 
-### Unsloth Studio (web UI)
-Unsloth Studio (Beta) works on **Windows, Linux, WSL** and **macOS**.
+### g4f Studio (web UI)
+g4f Studio (Beta) works on **Windows, Linux, WSL** and **macOS**.
 
 * **CPU:** Supported for Chat and Data Recipes currently
 * **NVIDIA:** Training works on RTX 30/40/50, Blackwell, DGX Spark, Station and more
@@ -82,11 +82,11 @@ Use the same command to update.
 
 #### Launch
 ```bash
-unsloth studio -p 8888
+g4f Studio -p 8888
 ```
 For cloud or global access, add `-H 0.0.0.0`. By default, Unsloth is accessible only locally.
 
-For a secure HTTPS link instead of a raw network port, use `unsloth studio --secure`. Studio stays bound to localhost and is served only through a free Cloudflare HTTPS tunnel (it fails closed if the tunnel can't start, so the raw port is never exposed).
+For a secure HTTPS link instead of a raw network port, use `g4f Studio --secure`. Studio stays bound to localhost and is served only through a free Cloudflare HTTPS tunnel (it fails closed if the tunnel can't start, so the raw port is never exposed).
 
 #### Docker
 Use our [Docker image](https://hub.docker.com/r/unsloth/unsloth) ```unsloth/unsloth``` container. Run:
@@ -118,7 +118,7 @@ uv venv unsloth_env --python 3.13
 uv pip install unsloth --torch-backend=auto
 ```
 For Windows, `pip install unsloth` works only if you have PyTorch installed. Read our [Windows Guide](https://unsloth.ai/docs/get-started/install/windows-installation).
-You can use the same Docker image as Unsloth Studio.
+You can use the same Docker image as g4f Studio.
 
 #### AMD, Intel:
 For RTX 50x, B200, 6000 GPUs: `uv pip install unsloth --torch-backend=auto`. Read our guides for: [Blackwell](https://unsloth.ai/docs/blog/fine-tuning-llms-with-blackwell-rtx-50-series-and-unsloth) and [DGX Spark](https://unsloth.ai/docs/blog/fine-tuning-llms-with-nvidia-dgx-spark-and-unsloth). <br>
@@ -126,7 +126,7 @@ To install Unsloth on **AMD** and **Intel** GPUs, follow our [AMD Guide](https:/
 
 ## 📒 Free Notebooks
 
-Train for free with our notebooks. You can use our new [free Unsloth Studio notebook](https://colab.research.google.com/github/unslothai/unsloth/blob/main/studio/Unsloth_Studio_Colab.ipynb) to run and train models for free in a web UI.
+Train for free with our notebooks. You can use our new [free g4f Studio notebook](https://colab.research.google.com/github/unslothai/unsloth/blob/main/studio/Unsloth_Studio_Colab.ipynb) to run and train models for free in a web UI.
 Read our [guide](https://unsloth.ai/docs/get-started/fine-tuning-llms-guide). Add dataset, run, then deploy your trained model.
 
 | Model | Free Notebooks | Performance | Memory use |
@@ -151,9 +151,9 @@ Read our [guide](https://unsloth.ai/docs/get-started/fine-tuning-llms-guide). Ad
 - **Connections**: Connect any API provider (OpenAI, Anthropic) or server (vLLM, Ollama). [Guide](https://unsloth.ai/docs/integrations/connections)
 - **MTP**: Run Qwen3.6 MTP in Unsloth. MTP settings are autoset specific to your hardware. [Guide](https://unsloth.ai/docs/models/qwen3.6#mtp-guide)
 - **API inference endpoint**: Deploy and run local LLMs in Claude Code, Codex tools. [Guide](https://unsloth.ai/docs/basics/api)
-- **Qwen3.6**: Qwen3.6-35B-A3B can now be trained and run in Unsloth Studio. [Blog](https://unsloth.ai/docs/models/qwen3.6)
+- **Qwen3.6**: Qwen3.6-35B-A3B can now be trained and run in g4f Studio. [Blog](https://unsloth.ai/docs/models/qwen3.6)
 - **Gemma 4**: Run and train Google’s new models directly in Unsloth. [Blog](https://unsloth.ai/docs/models/gemma-4)
-- **Introducing Unsloth Studio**: our new web UI for running and training LLMs. [Blog](https://unsloth.ai/docs/new/studio)
+- **Introducing g4f Studio**: our new web UI for running and training LLMs. [Blog](https://unsloth.ai/docs/new/studio)
 - **Qwen3.5** - 0.8B, 2B, 4B, 9B, 27B, 35-A3B, 112B-A10B are now supported. [Guide + notebooks](https://unsloth.ai/docs/models/qwen3.5/fine-tune)
 - Train **MoE LLMs 12x faster** with 35% less VRAM - DeepSeek, GLM, Qwen and gpt-oss. [Blog](https://unsloth.ai/docs/new/faster-moe)
 - **Embedding models**: Unsloth now supports ~1.8-3.3x faster embedding fine-tuning. [Blog](https://unsloth.ai/docs/new/embedding-finetuning) • [Notebooks](https://unsloth.ai/docs/get-started/unsloth-notebooks#embedding-models)
@@ -163,25 +163,25 @@ Read our [guide](https://unsloth.ai/docs/get-started/fine-tuning-llms-guide). Ad
 - **FP8 & Vision RL**: You can now do FP8 & VLM GRPO on consumer GPUs. [FP8 Blog](https://unsloth.ai/docs/get-started/reinforcement-learning-rl-guide/fp8-reinforcement-learning) • [Vision RL](https://unsloth.ai/docs/get-started/reinforcement-learning-rl-guide/vision-reinforcement-learning-vlm-rl)
 
 ## 📥 Advanced Installation
-The below advanced instructions are for Unsloth Studio. For Unsloth Core advanced installation, [view our docs](https://unsloth.ai/docs/get-started/install/pip-install#advanced-pip-installation).
+The below advanced instructions are for g4f Studio. For Unsloth Core advanced installation, [view our docs](https://unsloth.ai/docs/get-started/install/pip-install#advanced-pip-installation).
 #### Developer / Nightly / Experimental installs: macOS, Linux, WSL:
 The developer install builds from the `main` branch, which is the latest (nightly) source.
 ```bash
 git clone https://github.com/unslothai/unsloth
 cd unsloth
 ./install.sh --local
-unsloth studio -p 8888
+g4f Studio -p 8888
 ```
 To install into an isolated location (its own virtual env, `auth/`, `studio.db`, cache and llama.cpp build), set `UNSLOTH_STUDIO_HOME` and pass it again at launch:
 ```bash
 UNSLOTH_STUDIO_HOME="$PWD/.studio" ./install.sh --local
-UNSLOTH_STUDIO_HOME="$PWD/.studio" unsloth studio -p 8888
+UNSLOTH_STUDIO_HOME="$PWD/.studio" g4f Studio -p 8888
 ```
 Then to update :
 ```bash
 cd unsloth && git pull
 ./install.sh --local
-unsloth studio -p 8888
+g4f Studio -p 8888
 ```
 
 #### Developer / Nightly / Experimental installs: Windows PowerShell:
@@ -191,30 +191,30 @@ git clone https://github.com/unslothai/unsloth.git
 cd unsloth
 Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
 .\install.ps1 --local
-unsloth studio -p 8888
+g4f Studio -p 8888
 ```
 To install into an isolated location (its own virtual env, `auth/`, `studio.db`, cache and llama.cpp build), set `UNSLOTH_STUDIO_HOME` and pass it again at launch:
 ```powershell
 $env:UNSLOTH_STUDIO_HOME="$PWD\.studio"; .\install.ps1 --local
-$env:UNSLOTH_STUDIO_HOME="$PWD\.studio"; unsloth studio -p 8888
+$env:UNSLOTH_STUDIO_HOME="$PWD\.studio"; g4f Studio -p 8888
 ```
 Then to update :
 ```powershell
 cd unsloth; git pull
 .\install.ps1 --local
-unsloth studio -p 8888
+g4f Studio -p 8888
 ```
 
 #### Remote access: `--secure` (HTTPS tunnel) vs raw port
-By default `unsloth studio` binds to `127.0.0.1` (this machine only). To reach it from another device, pick one of:
+By default `g4f Studio` binds to `127.0.0.1` (this machine only). To reach it from another device, pick one of:
 
 - `--secure` (recommended): serve **only** through a free Cloudflare HTTPS link. Studio stays bound to localhost and the tunnel provides the public URL; it fails closed (does not start) if the tunnel can't come up, so the raw port is never exposed.
 ```bash
-unsloth studio --secure -p 8888
+g4f Studio --secure -p 8888
 ```
 - `-H 0.0.0.0`: bind the raw port on all network interfaces, reachable from anywhere on the network. Only use this on a trusted network.
 ```bash
-unsloth studio -H 0.0.0.0 -p 8888
+g4f Studio -H 0.0.0.0 -p 8888
 ```
 
 Server-side tools (web search, Python and terminal code execution) run as your user and are on by default. Anyone who can reach the server with the API key can run code on this machine, so keep your API key private and pass `--disable-tools` when exposing Studio.
@@ -246,10 +246,10 @@ curl -fsSL https://unsloth.ai/install.sh | UNSLOTH_STUDIO_HOME=/abs/path sh
 $env:UNSLOTH_STUDIO_HOME='C:\path'; irm https://unsloth.ai/install.ps1 | iex
 ```
 
-Cap Studio's native CPU thread pools on high-core hosts: `UNSLOTH_CPU_THREADS=8 unsloth studio -p 8888`.
+Cap Studio's native CPU thread pools on high-core hosts: `UNSLOTH_CPU_THREADS=8 g4f Studio -p 8888`.
 
 #### Uninstall
-The recommended way to fully remove Unsloth Studio is the matching uninstall script for your OS. It stops any running servers, removes the install dir, the launcher data dir, the desktop shortcut, and any platform-specific entries (macOS `.app` bundle + Launch Services on Mac; Start Menu, `HKCU\Software\Unsloth` registry key and user `PATH` entries on Windows):
+The recommended way to fully remove g4f Studio is the matching uninstall script for your OS. It stops any running servers, removes the install dir, the launcher data dir, the desktop shortcut, and any platform-specific entries (macOS `.app` bundle + Launch Services on Mac; Start Menu, `HKCU\Software\Unsloth` registry key and user `PATH` entries on Windows):
 
 * ​ **MacOS, WSL, Linux:** `curl -fsSL https://raw.githubusercontent.com/unslothai/unsloth/main/scripts/uninstall.sh | sh`
 * ​ **Windows (PowerShell):** `irm https://raw.githubusercontent.com/unslothai/unsloth/main/scripts/uninstall.ps1 | iex`
@@ -289,7 +289,7 @@ You can cite the Unsloth repo as follows:
 If you trained a model with 🦥Unsloth, you can use this cool sticker!   <img src="https://raw.githubusercontent.com/unslothai/unsloth/main/images/made with unsloth.png" width="200" align="center" />
 
 ### License
-Unsloth uses a dual-licensing model of Apache 2.0 and AGPL-3.0. The core Unsloth package remains licensed under **[Apache 2.0](https://github.com/unslothai/unsloth?tab=Apache-2.0-1-ov-file)**, while certain optional components, such as the Unsloth Studio UI are licensed under the open-source license **[AGPL-3.0](https://github.com/unslothai/unsloth?tab=AGPL-3.0-2-ov-file)**.
+Unsloth uses a dual-licensing model of Apache 2.0 and AGPL-3.0. The core Unsloth package remains licensed under **[Apache 2.0](https://github.com/unslothai/unsloth?tab=Apache-2.0-1-ov-file)**, while certain optional components, such as the g4f Studio UI are licensed under the open-source license **[AGPL-3.0](https://github.com/unslothai/unsloth?tab=AGPL-3.0-2-ov-file)**.
 
 This structure helps support ongoing Unsloth development while keeping the project open source and enabling the broader ecosystem to continue growing.
 
