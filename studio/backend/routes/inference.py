@@ -603,6 +603,7 @@ try:
     from core.inference import get_inference_backend
     from core.inference.llama_cpp import (
         LlamaCppBackend,
+        LlamaServerNotFoundError,
         _DEFAULT_FIRST_TOKEN_TIMEOUT_S,
         _DEFAULT_MAX_TOKENS_FLOOR,
         _DEFAULT_STREAM_STALL_TIMEOUT_S,
@@ -638,6 +639,7 @@ except ImportError:
     from core.inference import get_inference_backend
     from core.inference.llama_cpp import (
         LlamaCppBackend,
+        LlamaServerNotFoundError,
         _DEFAULT_FIRST_TOKEN_TIMEOUT_S,
         _DEFAULT_MAX_TOKENS_FLOOR,
         _DEFAULT_STREAM_STALL_TIMEOUT_S,
@@ -666,6 +668,12 @@ except ImportError:
         redact_native_paths,
         verify_native_path_lease,
     )
+
+
+def _is_llama_server_not_found(exc: BaseException) -> bool:
+    # importlib-loaded route modules can see a different class object than the
+    # test/runtime copy when llama_cpp was reloaded; match by name + base type.
+    return isinstance(exc, RuntimeError) and type(exc).__name__ == "LlamaServerNotFoundError"
 
 
 def _llama_non_streaming_generation_timeout() -> httpx.Timeout:
@@ -877,7 +885,6 @@ from auth.authentication import get_current_subject
 from state.tool_approvals import resolve_tool_decision
 
 from core.inference.key_exchange import decrypt_api_key
-from core.inference.model_ids import public_model_id
 from core.inference.api_monitor import api_monitor
 from core.inference.llama_http import nonstreaming_client
 from core.inference.providers import get_provider_info, get_base_url
@@ -1830,16 +1837,6 @@ def _request_matches_loaded_settings(
     backend_mode = llama_backend.requested_spec_mode or "auto"
     if req_mode != backend_mode:
         return False
-    # Prior HF load fell back with drafter_not_found: a same-settings reload must
-    # retry the download, not dedupe to the stale fallback. HF only (hf_repo set);
-    # local/native loads have no download to retry (handled by the path compare).
-    if (
-        llama_backend.hf_repo
-        and llama_backend.spec_fallback_reason == "drafter_not_found"
-        and req_mode in ("auto", "mtp", "mtp+ngram")
-        and not _extra_args_set_spec_type(effective_extra)
-    ):
-        return False
     # spec_draft_n_max only matters with an MTP variant; None means "platform
     # default" and matches whatever the backend chose.
     if backend_mode in ("mtp", "mtp+ngram") and request.spec_draft_n_max is not None:
@@ -2160,8 +2157,6 @@ async def load_model(
 
     GGUF models load via llama-server (llama.cpp) instead of Unsloth.
     """
-    from core.inference.llama_cpp import LlamaServerNotFoundError
-
     native_grant_backed = False
     model_log_label = request.model_path
     try:
@@ -2217,9 +2212,7 @@ async def load_model(
                 and llama_backend.model_identifier.lower() == model_identifier.lower()
                 # Match runtime settings so Apply isn't dropped (#5401).
                 and _request_matches_loaded_settings(
-                    request,
-                    llama_backend,
-                    effective_chat_template_override,
+                    request, llama_backend, effective_chat_template_override
                 )
                 # Skip if a prior audio probe failed -- let load_model retry.
                 and getattr(llama_backend, "_audio_probed", True)
@@ -2713,6 +2706,9 @@ async def load_model(
         logger.warning("GGUF runtime missing while loading '%s': %s", model_log_label, e)
         raise HTTPException(status_code = 400, detail = str(e))
     except Exception as e:
+        if _is_llama_server_not_found(e):
+            logger.warning("GGUF runtime missing while loading '%s': %s", model_log_label, e)
+            raise HTTPException(status_code = 400, detail = str(e))
         # Friendlier message for models Unsloth cannot load.
         not_supported_hints = [
             "No config file found",
@@ -2821,8 +2817,6 @@ async def validate_model(
     Checks that ModelConfig.from_identifier() can resolve model_path, but does
     NOT load model weights into GPU memory.
     """
-    from core.inference.llama_cpp import LlamaServerNotFoundError
-
     native_grant_backed = False
     model_log_label = request.model_path
     try:
@@ -2938,6 +2932,9 @@ async def validate_model(
         logger.warning("GGUF runtime missing while validating '%s': %s", request.model_path, e)
         raise HTTPException(status_code = 400, detail = str(e))
     except Exception as e:
+        if _is_llama_server_not_found(e):
+            logger.warning("GGUF runtime missing while validating '%s': %s", request.model_path, e)
+            raise HTTPException(status_code = 400, detail = str(e))
         not_supported_hints = [
             "No config file found",
             "not yet supported",
@@ -3221,6 +3218,27 @@ async def get_status(current_subject: str = Depends(get_current_subject)):
         _installed_tag = _freshness.get("installed_tag")
         _latest_tag = _freshness.get("latest_tag")
 
+        # GGUF load in flight (HF download, subprocess warm-up, health wait).
+        # _serial_load_lock is threading.RLock (not Lock), which has no
+        # .locked() method. Use a non-blocking acquire: returns False only
+        # when another thread already holds the lock.
+        _lock_acquired = llama_backend._serial_load_lock.acquire(blocking = False)
+        if _lock_acquired:
+            llama_backend._serial_load_lock.release()
+        if not _lock_acquired and not llama_backend.is_loaded:
+            _loading_id = llama_backend._model_identifier or ""
+            return InferenceStatusResponse(
+                active_model = None,
+                model_identifier = None,
+                is_gguf = True,
+                loading = [_loading_id] if _loading_id else ["(loading)"],
+                loaded = [],
+                llama_cpp_supports_mtp = _supports_mtp,
+                llama_cpp_prebuilt_stale = _stale,
+                llama_cpp_installed_tag = _installed_tag,
+                llama_cpp_latest_tag = _latest_tag,
+            )
+
         # If a GGUF model is loaded via llama-server, report that
         if llama_backend.is_loaded:
             _model_id = llama_backend.model_identifier
@@ -3401,7 +3419,7 @@ async def generate_audio(
     # Pick backend — both return (wav_bytes, sample_rate)
     llama_backend = get_llama_cpp_backend()
     if llama_backend.is_loaded and getattr(llama_backend, "_is_audio", False):
-        model_name = public_model_id(llama_backend.model_identifier)
+        model_name = llama_backend.model_identifier
         gen = lambda: llama_backend.generate_audio_response(
             text = text,
             audio_type = llama_backend._audio_type,
@@ -3419,7 +3437,7 @@ async def generate_audio(
         model_info = backend.models.get(backend.active_model_name, {})
         if not model_info.get("is_audio"):
             raise HTTPException(status_code = 400, detail = "Active model is not an audio model.")
-        model_name = public_model_id(backend.active_model_name)
+        model_name = backend.active_model_name
         gen = lambda: backend.generate_audio_response(
             text = text,
             temperature = payload.temperature,
@@ -4529,8 +4547,7 @@ async def openai_chat_completions(
         return response
 
     if using_gguf:
-        # Echo a clean public id in the response, never the absolute .gguf path.
-        model_name = public_model_id(llama_backend.model_identifier) or payload.model
+        model_name = llama_backend.model_identifier or payload.model
         if getattr(llama_backend, "_is_audio", False):
             if _wants_multiple_choices(payload):
                 _raise_unsupported_n("GGUF audio chat completions")
@@ -4545,9 +4562,7 @@ async def openai_chat_completions(
                 status_code = 400,
                 detail = "No model loaded. Call POST /inference/load first.",
             )
-        # Clean public id so the response never echoes a local path; the audio
-        # branch below receives this sanitized label too.
-        model_name = public_model_id(backend.active_model_name) or payload.model
+        model_name = backend.active_model_name or payload.model
         if _wants_multiple_choices(payload):
             _raise_unsupported_n("non-GGUF chat completions")
 
@@ -6096,9 +6111,7 @@ def _openai_model_objects() -> list[dict]:
     llama_backend = get_llama_cpp_backend()
     if llama_backend.is_loaded:
         entry = {
-            # Public id, never the absolute .gguf path (which leaks the host
-            # filesystem layout); see core.inference.model_ids.public_model_id.
-            "id": public_model_id(llama_backend.model_identifier),
+            "id": llama_backend.model_identifier,
             "object": "model",
             "created": _created,
             "owned_by": "local",
@@ -6119,7 +6132,7 @@ def _openai_model_objects() -> list[dict]:
     if backend.active_model_name:
         model_info = backend.models.get(backend.active_model_name, {})
         entry = {
-            "id": public_model_id(backend.active_model_name),
+            "id": backend.active_model_name,
             "object": "model",
             "created": _created,
             "owned_by": "local",
@@ -6140,70 +6153,15 @@ def _openai_model_objects() -> list[dict]:
     return models
 
 
-# Brief cache for the local-model filesystem scan so repeated /v1/models calls
-# don't rescan the HF cache and models dirs on every request.
-_CATALOG_CACHE: dict = {"at": 0.0, "models": []}
-_CATALOG_TTL_S = 30.0
-
-
-def _cached_local_catalog() -> list:
-    """Locally available models (models dir + HF caches + LM Studio + scan
-    folders), cached for a few seconds. Returns a list of LocalModelInfo."""
-    now = time.monotonic()
-    if not _CATALOG_CACHE["models"] or (now - _CATALOG_CACHE["at"]) > _CATALOG_TTL_S:
-        try:
-            from pathlib import Path as _Path
-
-            from routes.models import collect_local_models
-            _CATALOG_CACHE["models"] = collect_local_models(_Path("./models").resolve())
-        except Exception as exc:
-            logger.debug("model catalog scan failed: %s", exc)
-            _CATALOG_CACHE["models"] = []
-        _CATALOG_CACHE["at"] = now
-    return _CATALOG_CACHE["models"]
-
-
-def _openai_catalog_objects() -> list[dict]:
-    """Every model the server knows about for ``GET /v1/models``: the loaded
-    model(s) plus locally available (downloaded/cached) models discovered by
-    scanning. Loaded entries keep their context fields and are marked
-    ``loaded: true``. All ids are clean public ids (never absolute paths)."""
-    _created = int(time.time())
-    # Loaded models first (clean ids + context fields), marked loaded.
-    by_id: dict[str, dict] = {}
-    for entry in _openai_model_objects():
-        by_id[entry["id"]] = {**entry, "loaded": True}
-
-    # Locally available (downloaded/cached) models that are not already loaded.
-    for info in _cached_local_catalog():
-        cid = getattr(info, "model_id", None) or public_model_id(getattr(info, "id", None))
-        if not cid or cid in by_id:
-            continue
-        obj = {
-            "id": cid,
-            "object": "model",
-            "created": _created,
-            "owned_by": "local",
-            "loaded": False,
-        }
-        display = getattr(info, "display_name", None)
-        if display:
-            obj["display_name"] = display
-        by_id[cid] = obj
-
-    return list(by_id.values())
-
-
 @router.get("/models")
 async def openai_list_models(current_subject: str = Depends(get_current_subject)):
     """
-    OpenAI-compatible model listing endpoint (``GET /v1/models``).
+    OpenAI-compatible model listing endpoint.
 
-    Lists every model available on this server -- the loaded model(s) plus
-    locally available (downloaded/cached) models -- not only what is resident in
-    memory. Each entry carries a clean public id and a ``loaded`` flag.
+    Returns the currently loaded model in the format expected by
+    OpenAI-compatible clients (``GET /v1/models``).
     """
-    return {"object": "list", "data": _openai_catalog_objects()}
+    return {"object": "list", "data": _openai_model_objects()}
 
 
 @router.get("/models/{model_id:path}")
@@ -6211,29 +6169,13 @@ async def openai_retrieve_model(model_id: str, current_subject: str = Depends(ge
     """
     OpenAI-compatible single-model retrieval endpoint (``GET /v1/models/{id}``).
 
-    Returns the bare model object when ``model_id`` matches a known model
-    (loaded or locally available), or 404 model_not_found otherwise. Defined
-    after the LIST route so it does not shadow it; ``{model_id:path}`` keeps ids
-    with slashes intact.
+    Returns the bare model object when ``model_id`` matches a loaded local
+    model, or 404 model_not_found otherwise. Defined after the LIST route so
+    it does not shadow it; ``{model_id:path}`` keeps ids with slashes intact.
     """
-    objects = _openai_catalog_objects()
-    for model in objects:
+    for model in _openai_model_objects():
         if model["id"] == model_id:
             return model
-    # Backward compatibility: a client may still send the legacy raw identifier
-    # (e.g. an absolute .gguf path cached from an older /v1/models). Resolve it to
-    # the clean object so it keeps working, without ever echoing the path back.
-    llama_backend = get_llama_cpp_backend()
-    backend = get_inference_backend()
-    for raw in (
-        llama_backend.model_identifier if llama_backend.is_loaded else None,
-        backend.active_model_name or None,
-    ):
-        if raw and model_id == raw:
-            clean = public_model_id(raw)
-            for model in objects:
-                if model["id"] == clean:
-                    return model
     raise HTTPException(
         status_code = 404,
         detail = openai_error_body(
@@ -7187,9 +7129,6 @@ async def _responses_stream(
     target_url = f"{llama_backend.base_url}/v1/chat/completions"
 
     async def event_generator():
-        # Clean public id for every response envelope, so a legacy raw .gguf path
-        # sent as payload.model is sanitized and never echoed back to the client.
-        _clean_model = public_model_id(payload.model) or payload.model
         full_text = ""
         full_reasoning = ""
         input_tokens = 0
@@ -7343,7 +7282,7 @@ async def _responses_stream(
                     "object": "response",
                     "created_at": created_at,
                     "status": "failed",
-                    "model": _clean_model,
+                    "model": payload.model,
                     "output": _snapshot_output(),
                     "usage": {
                         "input_tokens": input_tokens,
@@ -7367,7 +7306,7 @@ async def _responses_stream(
                     "object": "response",
                     "created_at": created_at,
                     "status": "in_progress",
-                    "model": _clean_model,
+                    "model": payload.model,
                     "output": [],
                     "usage": {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0},
                 },
@@ -7407,7 +7346,7 @@ async def _responses_stream(
                             "object": "response",
                             "created_at": created_at,
                             "status": "failed",
-                            "model": _clean_model,
+                            "model": payload.model,
                             "output": [],
                             "error": {"code": 502, "message": _friendly_error(e)},
                         },
@@ -7433,7 +7372,7 @@ async def _responses_stream(
                             "object": "response",
                             "created_at": created_at,
                             "status": "failed",
-                            "model": _clean_model,
+                            "model": payload.model,
                             "output": [],
                             "error": {
                                 "code": resp.status_code,
@@ -7826,7 +7765,7 @@ async def _responses_stream(
                 "object": "response",
                 "created_at": created_at,
                 "status": "completed",
-                "model": _clean_model,
+                "model": payload.model,
                 "output": _snapshot_output(),
                 "usage": {
                     "input_tokens": input_tokens,
@@ -8089,13 +8028,7 @@ async def anthropic_messages(
             ),
         )
 
-    # Clean public id so /v1/messages never echoes the local .gguf path (and a
-    # legacy raw path sent as payload.model is sanitized rather than returned).
-    model_name = (
-        public_model_id(getattr(llama_backend, "model_identifier", None))
-        or public_model_id(payload.model)
-        or payload.model
-    )
+    model_name = getattr(llama_backend, "model_identifier", None) or payload.model
     message_id = f"msg_{uuid.uuid4().hex[:24]}"
 
     # ── Translate Anthropic → OpenAI ──────────────────────────
