@@ -1935,19 +1935,6 @@ def get_llama_cpp_backend() -> LlamaCppBackend:
     return _llama_cpp_backend
 
 
-def _note_idle_activity(backend) -> None:
-    """Best-effort idle-TTL activity ping at a request boundary.
-
-    The real GGUF backend implements ``note_activity`` for the idle-TTL evictor.
-    Calling it through this guard keeps the request path working for any backend
-    that does not track activity, so a missing telemetry hook can never turn a
-    served request into a 500.
-    """
-    note = getattr(backend, "note_activity", None)
-    if callable(note):
-        note()
-
-
 def _effective_load_in_4bit(config: ModelConfig, requested: bool) -> bool:
     """Effective quantization the loader will use: a LoRA adapter can flip 4-bit to
     16-bit via adapter_config.json, so the guard sizes this, not the raw request."""
@@ -4489,10 +4476,6 @@ async def openai_chat_completions(
 
     llama_backend = get_llama_cpp_backend()
     using_gguf = llama_backend.is_loaded
-    if using_gguf:
-        # Refresh idle-TTL activity at request start; streamed chunks refresh it
-        # again so a long generation is never auto-evicted mid-flight.
-        _note_idle_activity(llama_backend)
 
     # OpenAI-SDK clients send ``chat_template_kwargs`` via ``extra_body``, which
     # the SDK spreads into the request body at the top level. Studio's
@@ -6157,15 +6140,70 @@ def _openai_model_objects() -> list[dict]:
     return models
 
 
+# Brief cache for the local-model filesystem scan so repeated /v1/models calls
+# don't rescan the HF cache and models dirs on every request.
+_CATALOG_CACHE: dict = {"at": 0.0, "models": []}
+_CATALOG_TTL_S = 30.0
+
+
+def _cached_local_catalog() -> list:
+    """Locally available models (models dir + HF caches + LM Studio + scan
+    folders), cached for a few seconds. Returns a list of LocalModelInfo."""
+    now = time.monotonic()
+    if not _CATALOG_CACHE["models"] or (now - _CATALOG_CACHE["at"]) > _CATALOG_TTL_S:
+        try:
+            from pathlib import Path as _Path
+
+            from routes.models import collect_local_models
+            _CATALOG_CACHE["models"] = collect_local_models(_Path("./models").resolve())
+        except Exception as exc:
+            logger.debug("model catalog scan failed: %s", exc)
+            _CATALOG_CACHE["models"] = []
+        _CATALOG_CACHE["at"] = now
+    return _CATALOG_CACHE["models"]
+
+
+def _openai_catalog_objects() -> list[dict]:
+    """Every model the server knows about for ``GET /v1/models``: the loaded
+    model(s) plus locally available (downloaded/cached) models discovered by
+    scanning. Loaded entries keep their context fields and are marked
+    ``loaded: true``. All ids are clean public ids (never absolute paths)."""
+    _created = int(time.time())
+    # Loaded models first (clean ids + context fields), marked loaded.
+    by_id: dict[str, dict] = {}
+    for entry in _openai_model_objects():
+        by_id[entry["id"]] = {**entry, "loaded": True}
+
+    # Locally available (downloaded/cached) models that are not already loaded.
+    for info in _cached_local_catalog():
+        cid = getattr(info, "model_id", None) or public_model_id(getattr(info, "id", None))
+        if not cid or cid in by_id:
+            continue
+        obj = {
+            "id": cid,
+            "object": "model",
+            "created": _created,
+            "owned_by": "local",
+            "loaded": False,
+        }
+        display = getattr(info, "display_name", None)
+        if display:
+            obj["display_name"] = display
+        by_id[cid] = obj
+
+    return list(by_id.values())
+
+
 @router.get("/models")
 async def openai_list_models(current_subject: str = Depends(get_current_subject)):
     """
-    OpenAI-compatible model listing endpoint.
+    OpenAI-compatible model listing endpoint (``GET /v1/models``).
 
-    Returns the currently loaded model in the format expected by
-    OpenAI-compatible clients (``GET /v1/models``).
+    Lists every model available on this server -- the loaded model(s) plus
+    locally available (downloaded/cached) models -- not only what is resident in
+    memory. Each entry carries a clean public id and a ``loaded`` flag.
     """
-    return {"object": "list", "data": _openai_model_objects()}
+    return {"object": "list", "data": _openai_catalog_objects()}
 
 
 @router.get("/models/{model_id:path}")
@@ -6173,11 +6211,12 @@ async def openai_retrieve_model(model_id: str, current_subject: str = Depends(ge
     """
     OpenAI-compatible single-model retrieval endpoint (``GET /v1/models/{id}``).
 
-    Returns the bare model object when ``model_id`` matches a loaded local
-    model, or 404 model_not_found otherwise. Defined after the LIST route so
-    it does not shadow it; ``{model_id:path}`` keeps ids with slashes intact.
+    Returns the bare model object when ``model_id`` matches a known model
+    (loaded or locally available), or 404 model_not_found otherwise. Defined
+    after the LIST route so it does not shadow it; ``{model_id:path}`` keeps ids
+    with slashes intact.
     """
-    objects = _openai_model_objects()
+    objects = _openai_catalog_objects()
     for model in objects:
         if model["id"] == model_id:
             return model
@@ -6225,7 +6264,6 @@ async def openai_completions(request: Request, current_subject: str = Depends(ge
             status_code = 503,
             detail = "No GGUF model loaded. Load a GGUF model first.",
         )
-    _note_idle_activity(llama_backend)
 
     body = await request.json()
     if body.get("max_tokens") is None:
@@ -6414,7 +6452,6 @@ async def openai_embeddings(request: Request, current_subject: str = Depends(get
             status_code = 503,
             detail = "No GGUF model loaded. Load a GGUF model first.",
         )
-    _note_idle_activity(llama_backend)
 
     body = await request.json()
     target_url = f"{llama_backend.base_url}/v1/embeddings"
