@@ -1318,7 +1318,6 @@ async function autoLoadSmallestModel(): Promise<{
               loadedKvCacheDtype: loadResp.cache_type_kv ?? null,
               tensorParallel: loadResp.tensor_parallel ?? false,
               loadedTensorParallel: loadResp.tensor_parallel ?? false,
-              gpuLayers: loadResp.n_gpu_layers ?? null,
               loadedGpuLayers: loadResp.n_gpu_layers ?? null,
               defaultChatTemplate: loadResp.chat_template ?? null,
               chatTemplateOverride: null,
@@ -1386,7 +1385,6 @@ async function autoLoadSmallestModel(): Promise<{
             supportsTools: sfLoadResp.supports_tools ?? false,
             // Parity with the GGUF branch above.
             ...resolveToolsEnabledOnLoad(sfLoadResp.supports_tools ?? false),
-            gpuLayers: sfLoadResp.n_gpu_layers ?? null,
             loadedGpuLayers: sfLoadResp.n_gpu_layers ?? null,
             defaultChatTemplate: sfLoadResp.chat_template ?? null,
             chatTemplateOverride: null,
@@ -1495,7 +1493,6 @@ async function autoLoadSmallestModel(): Promise<{
         loadedKvCacheDtype: loadResp.cache_type_kv ?? null,
         tensorParallel: loadResp.tensor_parallel ?? false,
         loadedTensorParallel: loadResp.tensor_parallel ?? false,
-        gpuLayers: loadResp.n_gpu_layers ?? null,
         loadedGpuLayers: loadResp.n_gpu_layers ?? null,
         defaultChatTemplate: loadResp.chat_template ?? null,
         chatTemplateOverride: null,

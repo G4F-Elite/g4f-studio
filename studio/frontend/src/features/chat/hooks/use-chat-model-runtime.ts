@@ -729,7 +729,6 @@ export function useChatModelRuntime() {
               loadedKvCacheDtype: loadedKv,
               tensorParallel: loadedTp,
               loadedTensorParallel: loadedTp,
-              gpuLayers: loadResponse.n_gpu_layers ?? null,
               loadedGpuLayers: loadResponse.n_gpu_layers ?? null,
               speculativeType: loadedSpec,
               loadedSpeculativeType: loadedSpec,
