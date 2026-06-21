@@ -46,6 +46,42 @@ const NUMERIC_INFERENCE_FIELDS = [
   "presencePenalty",
   "maxSeqLength",
   "maxTokens",
+  // Tier 1
+  "seed",
+  // Tier 2
+  "frequencyPenalty",
+  "n",
+  "maxCompletionTokens",
+  // Tier 3
+  "typicalP",
+  "tfsZ",
+  "topA",
+  "topNSigma",
+  "smoothingFactor",
+  "mirostat",
+  "mirostatTau",
+  "mirostatEta",
+  "xtcProbability",
+  "xtcThreshold",
+  "dryMultiplier",
+  "dryBase",
+  "dryAllowedLength",
+  "dryPenaltyLastN",
+  "repeatLastN",
+  "dynatempRange",
+  "dynatempExponent",
+  "adaptiveTarget",
+  "adaptiveDecay",
+  "topLogprobs",
+  "nProbs",
+  "minKeep",
+  // Tier 4
+  "reasoningBudgetTokens",
+  "nKeep",
+  "nDiscard",
+  "nIndent",
+  "nCacheReuse",
+  "tMaxPredictMs",
 ] as const satisfies readonly (keyof PersistedInferenceParams)[];
 
 const CHAT_PRESET_SOURCES = new Set<string>([
@@ -145,6 +181,69 @@ function sanitizeInferenceParams(
   if (typeof value.fastMode === "boolean") {
     params.fastMode = value.fastMode;
   }
+
+  // Tier 1 — String arrays
+  if (Array.isArray(value.stop) && value.stop.every((s: unknown) => typeof s === "string")) {
+    params.stop = value.stop as string[];
+  }
+
+  // Tier 3 — Booleans
+  const boolFields = [
+    "penalizeNl", "logprobs", "ignoreEos",
+    "reasoningControl", "returnTokens", "returnProgress",
+    "postSamplingProbs", "timingsPerToken", "backendSampling",
+    "grammarLazy",
+  ] as const;
+  for (const field of boolFields) {
+    if (typeof value[field] === "boolean") {
+      params[field] = value[field];
+    }
+  }
+
+  // Tier 3 — Strings
+  const stringFields = [
+    "grammar", "jsonSchema",
+    "reasoningFormat", "reasoningBudgetStartTag",
+    "reasoningBudgetEndTag", "reasoningBudgetMessage",
+  ] as const;
+  for (const field of stringFields) {
+    if (typeof value[field] === "string") {
+      params[field] = value[field];
+    }
+  }
+
+  // Tier 3 — String arrays (nonempty)
+  const stringArrayFields = [
+    "drySequenceBreakers", "samplers", "responseFields",
+  ] as const;
+  for (const field of stringArrayFields) {
+    const arr = value[field];
+    if (Array.isArray(arr) && arr.every((s: unknown) => typeof s === "string")) {
+      params[field] = arr as string[];
+    }
+  }
+
+  // Logit bias (Record<string, number>)
+  if (typeof value.logitBias === "object" && value.logitBias !== null && !Array.isArray(value.logitBias)) {
+    const bias = value.logitBias as Record<string, unknown>;
+    const sanitized: Record<string, number> = {};
+    let hasEntries = false;
+    for (const [key, val] of Object.entries(bias)) {
+      if (typeof val === "number" && Number.isFinite(val)) {
+        sanitized[key] = val;
+        hasEntries = true;
+      }
+    }
+    if (hasEntries) {
+      params.logitBias = sanitized;
+    }
+  }
+
+  // Number arrays
+  if (Array.isArray(value.preservedTokens) && value.preservedTokens.every((n: unknown) => typeof n === "number" && Number.isInteger(n as number))) {
+    params.preservedTokens = value.preservedTokens as number[];
+  }
+
   return hasKeys(params) ? params : undefined;
 }
 

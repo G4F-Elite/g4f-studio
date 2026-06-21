@@ -4443,15 +4443,6 @@ async def openai_chat_completions(
         if _m.role == "developer":
             _m.role = "system"
 
-    if payload.logprobs:
-        _raise_unsupported_openai_parameter(
-            "logprobs", "logprobs is not supported for chat completions."
-        )
-    if payload.top_logprobs is not None:
-        _raise_unsupported_openai_parameter(
-            "top_logprobs", "top_logprobs is not supported for chat completions."
-        )
-
     # ── External provider routing ────────────────────────────────
     # encrypted_api_key is optional -- local providers (llama.cpp / vLLM / Ollama) may run without auth.
     if payload.provider_id or payload.provider_type:
@@ -5000,6 +4991,7 @@ async def openai_chat_completions(
                     max_tokens = effective_max_tokens,
                     repetition_penalty = payload.repetition_penalty,
                     presence_penalty = payload.presence_penalty,
+                    frequency_penalty = payload.frequency_penalty,
                     stop = normalized_stop,
                     cancel_event = cancel_event,
                     seed = payload.seed,
@@ -5021,6 +5013,58 @@ async def openai_chat_completions(
                     confirm_tool_calls = bool(payload.confirm_tool_calls)
                     and not bool(payload.bypass_permissions),
                     bypass_permissions = bool(payload.bypass_permissions),
+                    max_completion_tokens = payload.max_completion_tokens,
+                    n = payload.n,
+                    logprobs = payload.logprobs,
+                    top_logprobs = payload.top_logprobs,
+                    n_probs = payload.n_probs,
+                    typical_p = payload.typical_p,
+                    tfs_z = payload.tfs_z,
+                    top_a = payload.top_a,
+                    top_n_sigma = payload.top_n_sigma,
+                    smoothing_factor = payload.smoothing_factor,
+                    mirostat = payload.mirostat,
+                    mirostat_tau = payload.mirostat_tau,
+                    mirostat_eta = payload.mirostat_eta,
+                    xtc_probability = payload.xtc_probability,
+                    xtc_threshold = payload.xtc_threshold,
+                    dry_multiplier = payload.dry_multiplier,
+                    dry_base = payload.dry_base,
+                    dry_allowed_length = payload.dry_allowed_length,
+                    dry_sequence_breakers = payload.dry_sequence_breakers,
+                    dry_penalty_last_n = payload.dry_penalty_last_n,
+                    repeat_last_n = payload.repeat_last_n,
+                    penalize_nl = payload.penalize_nl,
+                    dynatemp_range = payload.dynatemp_range,
+                    dynatemp_exponent = payload.dynatemp_exponent,
+                    adaptive_target = payload.adaptive_target,
+                    adaptive_decay = payload.adaptive_decay,
+                    logit_bias = payload.logit_bias,
+                    samplers = payload.samplers,
+                    grammar = payload.grammar,
+                    json_schema = payload.json_schema,
+                    ignore_eos = payload.ignore_eos,
+                    min_keep = payload.min_keep,
+                    reasoning_format = payload.reasoning_format,
+                    reasoning_control = payload.reasoning_control,
+                    reasoning_budget_tokens = payload.reasoning_budget_tokens,
+                    reasoning_budget_start_tag = payload.reasoning_budget_start_tag,
+                    reasoning_budget_end_tag = payload.reasoning_budget_end_tag,
+                    reasoning_budget_message = payload.reasoning_budget_message,
+                    n_keep = payload.n_keep,
+                    n_discard = payload.n_discard,
+                    n_indent = payload.n_indent,
+                    n_cache_reuse = payload.n_cache_reuse,
+                    t_max_predict_ms = payload.t_max_predict_ms,
+                    return_tokens = payload.return_tokens,
+                    return_progress = payload.return_progress,
+                    post_sampling_probs = payload.post_sampling_probs,
+                    timings_per_token = payload.timings_per_token,
+                    response_fields = payload.response_fields,
+                    backend_sampling = payload.backend_sampling,
+                    grammar_lazy = payload.grammar_lazy,
+                    grammar_triggers = payload.grammar_triggers,
+                    preserved_tokens = payload.preserved_tokens,
                 )
 
             _tool_sentinel = object()
@@ -5601,7 +5645,10 @@ async def openai_chat_completions(
                 min_p = payload.min_p,
                 max_tokens = effective_max_tokens,
                 repetition_penalty = payload.repetition_penalty,
+                frequency_penalty = payload.frequency_penalty,
                 cancel_event = cancel_event,
+                seed = payload.seed,
+                stop = normalized_stop,
                 enable_thinking = payload.enable_thinking,
                 reasoning_effort = payload.reasoning_effort,
                 preserve_thinking = payload.preserve_thinking,
@@ -5619,6 +5666,58 @@ async def openai_chat_completions(
                 bypass_permissions = bool(payload.bypass_permissions),
                 use_adapter = payload.use_adapter,
                 stats_holder = _sf_stats_holder,
+                max_completion_tokens = payload.max_completion_tokens,
+                n = payload.n,
+                logprobs = payload.logprobs,
+                top_logprobs = payload.top_logprobs,
+                n_probs = payload.n_probs,
+                typical_p = payload.typical_p,
+                tfs_z = payload.tfs_z,
+                top_a = payload.top_a,
+                top_n_sigma = payload.top_n_sigma,
+                smoothing_factor = payload.smoothing_factor,
+                mirostat = payload.mirostat,
+                mirostat_tau = payload.mirostat_tau,
+                mirostat_eta = payload.mirostat_eta,
+                xtc_probability = payload.xtc_probability,
+                xtc_threshold = payload.xtc_threshold,
+                dry_multiplier = payload.dry_multiplier,
+                dry_base = payload.dry_base,
+                dry_allowed_length = payload.dry_allowed_length,
+                dry_sequence_breakers = payload.dry_sequence_breakers,
+                dry_penalty_last_n = payload.dry_penalty_last_n,
+                repeat_last_n = payload.repeat_last_n,
+                penalize_nl = payload.penalize_nl,
+                dynatemp_range = payload.dynatemp_range,
+                dynatemp_exponent = payload.dynatemp_exponent,
+                adaptive_target = payload.adaptive_target,
+                adaptive_decay = payload.adaptive_decay,
+                logit_bias = payload.logit_bias,
+                samplers = payload.samplers,
+                grammar = payload.grammar,
+                json_schema = payload.json_schema,
+                ignore_eos = payload.ignore_eos,
+                min_keep = payload.min_keep,
+                reasoning_format = payload.reasoning_format,
+                reasoning_control = payload.reasoning_control,
+                reasoning_budget_tokens = payload.reasoning_budget_tokens,
+                reasoning_budget_start_tag = payload.reasoning_budget_start_tag,
+                reasoning_budget_end_tag = payload.reasoning_budget_end_tag,
+                reasoning_budget_message = payload.reasoning_budget_message,
+                n_keep = payload.n_keep,
+                n_discard = payload.n_discard,
+                n_indent = payload.n_indent,
+                n_cache_reuse = payload.n_cache_reuse,
+                t_max_predict_ms = payload.t_max_predict_ms,
+                return_tokens = payload.return_tokens,
+                return_progress = payload.return_progress,
+                post_sampling_probs = payload.post_sampling_probs,
+                timings_per_token = payload.timings_per_token,
+                response_fields = payload.response_fields,
+                backend_sampling = payload.backend_sampling,
+                grammar_lazy = payload.grammar_lazy,
+                grammar_triggers = payload.grammar_triggers,
+                preserved_tokens = payload.preserved_tokens,
             )
 
         _sf_tool_sentinel = object()
@@ -8733,12 +8832,65 @@ def _build_passthrough_payload(
     min_p = None,
     repetition_penalty = None,
     presence_penalty = None,
+    frequency_penalty = None,
     tool_choice = "auto",
     response_format = None,
     chat_template_kwargs = None,
     backend_ctx = None,
     seed = None,
     stream_options = None,
+    n = None,
+    max_completion_tokens = None,
+    logprobs = None,
+    top_logprobs = None,
+    n_probs = None,
+    typical_p = None,
+    tfs_z = None,
+    top_a = None,
+    top_n_sigma = None,
+    smoothing_factor = None,
+    mirostat = None,
+    mirostat_tau = None,
+    mirostat_eta = None,
+    xtc_probability = None,
+    xtc_threshold = None,
+    dry_multiplier = None,
+    dry_base = None,
+    dry_allowed_length = None,
+    dry_sequence_breakers = None,
+    dry_penalty_last_n = None,
+    repeat_last_n = None,
+    penalize_nl = None,
+    dynatemp_range = None,
+    dynatemp_exponent = None,
+    adaptive_target = None,
+    adaptive_decay = None,
+    logit_bias = None,
+    samplers = None,
+    grammar = None,
+    json_schema = None,
+    ignore_eos = None,
+    min_keep = None,
+    reasoning_format = None,
+    reasoning_control = None,
+    reasoning_budget_tokens = None,
+    reasoning_budget_start_tag = None,
+    reasoning_budget_end_tag = None,
+    reasoning_budget_message = None,
+    n_keep = None,
+    n_discard = None,
+    n_indent = None,
+    n_cache_reuse = None,
+    t_max_predict_ms = None,
+    return_tokens = None,
+    return_progress = None,
+    post_sampling_probs = None,
+    timings_per_token = None,
+    response_fields = None,
+    backend_sampling = None,
+    grammar_lazy = None,
+    grammar_triggers = None,
+    preserved_tokens = None,
 ):
     body = {
         "messages": openai_messages,
@@ -8768,6 +8920,23 @@ def _build_passthrough_payload(
         body["repeat_penalty"] = repetition_penalty
     if presence_penalty is not None:
         body["presence_penalty"] = presence_penalty
+    if frequency_penalty is not None:
+        body["frequency_penalty"] = frequency_penalty
+    if n is not None:
+        # OpenAI 'n' maps to llama-server 'n_cmpl'
+        body["n_cmpl"] = n
+    if max_completion_tokens is not None:
+        # Fallback: if max_tokens wasn't resolved (None), use max_completion_tokens
+        if max_tokens is None:
+            body["max_tokens"] = max_completion_tokens
+    # Map logprobs/top_logprobs to n_probs
+    _n_probs = n_probs
+    if _n_probs is None and logprobs:
+        _n_probs = max(top_logprobs if top_logprobs is not None else 1, 1)
+    elif _n_probs is None and top_logprobs is not None:
+        _n_probs = top_logprobs
+    if _n_probs is not None:
+        body["n_probs"] = _n_probs
     if response_format is not None:
         # llama-server applies a GBNF grammar derived from the JSON schema when
         # response_format is present. The field is documented flat at the
@@ -8779,6 +8948,115 @@ def _build_passthrough_payload(
         # llama-server renders the Jinja template in the caller's mode instead
         # of the model's load-time default.
         body["chat_template_kwargs"] = chat_template_kwargs
+    # ── Advanced sampling ──
+    if typical_p is not None:
+        body["typical_p"] = typical_p
+    if tfs_z is not None:
+        body["tfs_z"] = tfs_z
+    if top_a is not None:
+        body["top_a"] = top_a
+    if top_n_sigma is not None:
+        body["top_n_sigma"] = top_n_sigma
+    if smoothing_factor is not None:
+        body["smoothing_factor"] = smoothing_factor
+    # ── Mirostat ──
+    if mirostat is not None:
+        body["mirostat"] = mirostat
+    if mirostat_tau is not None:
+        body["mirostat_tau"] = mirostat_tau
+    if mirostat_eta is not None:
+        body["mirostat_eta"] = mirostat_eta
+    # ── XTC ──
+    if xtc_probability is not None:
+        body["xtc_probability"] = xtc_probability
+    if xtc_threshold is not None:
+        body["xtc_threshold"] = xtc_threshold
+    # ── DRY ──
+    if dry_multiplier is not None:
+        body["dry_multiplier"] = dry_multiplier
+    if dry_base is not None:
+        body["dry_base"] = dry_base
+    if dry_allowed_length is not None:
+        body["dry_allowed_length"] = dry_allowed_length
+    if dry_sequence_breakers is not None:
+        body["dry_sequence_breakers"] = dry_sequence_breakers
+    if dry_penalty_last_n is not None:
+        body["dry_penalty_last_n"] = dry_penalty_last_n
+    # ── Penalties ──
+    if repeat_last_n is not None:
+        body["repeat_last_n"] = repeat_last_n
+    if penalize_nl is not None:
+        body["penalize_nl"] = penalize_nl
+    # ── Dynamic temperature ──
+    if dynatemp_range is not None:
+        body["dynatemp_range"] = dynatemp_range
+    if dynatemp_exponent is not None:
+        body["dynatemp_exponent"] = dynatemp_exponent
+    # ── Adaptive ──
+    if adaptive_target is not None:
+        body["adaptive_target"] = adaptive_target
+    if adaptive_decay is not None:
+        body["adaptive_decay"] = adaptive_decay
+    # ── Logit bias ──
+    if logit_bias is not None:
+        body["logit_bias"] = logit_bias
+    # ── Samplers ──
+    if samplers is not None:
+        body["samplers"] = samplers
+    # ── Grammar ──
+    if grammar is not None:
+        body["grammar"] = grammar
+    if json_schema is not None:
+        body["json_schema"] = json_schema
+    # ── Generation control ──
+    if ignore_eos is not None:
+        body["ignore_eos"] = ignore_eos
+    if min_keep is not None:
+        body["min_keep"] = min_keep
+    # ── Reasoning ──
+    if reasoning_format is not None:
+        body["reasoning_format"] = reasoning_format
+    if reasoning_control is not None:
+        body["reasoning_control"] = reasoning_control
+    if reasoning_budget_tokens is not None:
+        body["reasoning_budget_tokens"] = reasoning_budget_tokens
+    if reasoning_budget_start_tag is not None:
+        body["reasoning_budget_start_tag"] = reasoning_budget_start_tag
+    if reasoning_budget_end_tag is not None:
+        body["reasoning_budget_end_tag"] = reasoning_budget_end_tag
+    if reasoning_budget_message is not None:
+        body["reasoning_budget_message"] = reasoning_budget_message
+    # ── Generation control ──
+    if n_keep is not None:
+        body["n_keep"] = n_keep
+    if n_discard is not None:
+        body["n_discard"] = n_discard
+    if n_indent is not None:
+        body["n_indent"] = n_indent
+    if n_cache_reuse is not None:
+        body["n_cache_reuse"] = n_cache_reuse
+    if t_max_predict_ms is not None:
+        body["t_max_predict_ms"] = t_max_predict_ms
+    # ── Output control ──
+    if return_tokens is not None:
+        body["return_tokens"] = return_tokens
+    if return_progress is not None:
+        body["return_progress"] = return_progress
+    if post_sampling_probs is not None:
+        body["post_sampling_probs"] = post_sampling_probs
+    if timings_per_token is not None:
+        body["timings_per_token"] = timings_per_token
+    if response_fields is not None:
+        body["response_fields"] = response_fields
+    if backend_sampling is not None:
+        body["backend_sampling"] = backend_sampling
+    # ── Advanced grammar ──
+    if grammar_lazy is not None:
+        body["grammar_lazy"] = grammar_lazy
+    if grammar_triggers is not None:
+        body["grammar_triggers"] = grammar_triggers
+    if preserved_tokens is not None:
+        body["preserved_tokens"] = preserved_tokens
     return body
 
 
@@ -9407,12 +9685,65 @@ def _build_openai_passthrough_body(
         min_p = payload.min_p,
         repetition_penalty = payload.repetition_penalty,
         presence_penalty = payload.presence_penalty,
+        frequency_penalty = payload.frequency_penalty,
         tool_choice = tool_choice,
         response_format = _extract_response_format(payload),
         chat_template_kwargs = tpl_kwargs,
         backend_ctx = backend_ctx,
         seed = payload.seed,
         stream_options = payload.stream_options,
+        n = payload.n,
+        max_completion_tokens = payload.max_completion_tokens,
+        logprobs = payload.logprobs,
+        top_logprobs = payload.top_logprobs,
+        n_probs = payload.n_probs,
+        typical_p = payload.typical_p,
+        tfs_z = payload.tfs_z,
+        top_a = payload.top_a,
+        top_n_sigma = payload.top_n_sigma,
+        smoothing_factor = payload.smoothing_factor,
+        mirostat = payload.mirostat,
+        mirostat_tau = payload.mirostat_tau,
+        mirostat_eta = payload.mirostat_eta,
+        xtc_probability = payload.xtc_probability,
+        xtc_threshold = payload.xtc_threshold,
+        dry_multiplier = payload.dry_multiplier,
+        dry_base = payload.dry_base,
+        dry_allowed_length = payload.dry_allowed_length,
+        dry_sequence_breakers = payload.dry_sequence_breakers,
+        dry_penalty_last_n = payload.dry_penalty_last_n,
+        repeat_last_n = payload.repeat_last_n,
+        penalize_nl = payload.penalize_nl,
+        dynatemp_range = payload.dynatemp_range,
+        dynatemp_exponent = payload.dynatemp_exponent,
+        adaptive_target = payload.adaptive_target,
+        adaptive_decay = payload.adaptive_decay,
+        logit_bias = payload.logit_bias,
+        samplers = payload.samplers,
+        grammar = payload.grammar,
+        json_schema = payload.json_schema,
+        ignore_eos = payload.ignore_eos,
+        min_keep = payload.min_keep,
+        reasoning_format = payload.reasoning_format,
+        reasoning_control = payload.reasoning_control,
+        reasoning_budget_tokens = payload.reasoning_budget_tokens,
+        reasoning_budget_start_tag = payload.reasoning_budget_start_tag,
+        reasoning_budget_end_tag = payload.reasoning_budget_end_tag,
+        reasoning_budget_message = payload.reasoning_budget_message,
+        n_keep = payload.n_keep,
+        n_discard = payload.n_discard,
+        n_indent = payload.n_indent,
+        n_cache_reuse = payload.n_cache_reuse,
+        t_max_predict_ms = payload.t_max_predict_ms,
+        return_tokens = payload.return_tokens,
+        return_progress = payload.return_progress,
+        post_sampling_probs = payload.post_sampling_probs,
+        timings_per_token = payload.timings_per_token,
+        response_fields = payload.response_fields,
+        backend_sampling = payload.backend_sampling,
+        grammar_lazy = payload.grammar_lazy,
+        grammar_triggers = payload.grammar_triggers,
+        preserved_tokens = payload.preserved_tokens,
     )
 
 

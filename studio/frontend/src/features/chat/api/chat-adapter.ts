@@ -1989,6 +1989,16 @@ export function createOpenAIStreamAdapter(): ChatModelAdapter {
               repetition_penalty: params.repetitionPenalty,
               presence_penalty: params.presencePenalty,
               ...(useAdapter === undefined ? {} : { use_adapter: useAdapter }),
+              ...(typeof params.seed === "number" ? { seed: params.seed } : {}),
+              ...(typeof params.frequencyPenalty === "number" ? { frequency_penalty: params.frequencyPenalty } : {}),
+              ...(typeof params.typicalP === "number" ? { typical_p: params.typicalP } : {}),
+              ...(typeof params.tfsZ === "number" ? { tfs_z: params.tfsZ } : {}),
+              ...(typeof params.topA === "number" ? { top_a: params.topA } : {}),
+              ...(typeof params.repeatLastN === "number" ? { repeat_last_n: params.repeatLastN } : {}),
+              ...(typeof params.penalizeNl === "boolean" ? { penalize_nl: params.penalizeNl } : {}),
+              ...(params.logitBias != null ? { logit_bias: params.logitBias } : {}),
+              ...(typeof params.logprobs === "boolean" ? { logprobs: params.logprobs } : {}),
+              ...(typeof params.ignoreEos === "boolean" ? { ignore_eos: params.ignoreEos } : {}),
             },
             abortSignal,
           );
@@ -2505,7 +2515,7 @@ export function createOpenAIStreamAdapter(): ChatModelAdapter {
             };
           }
 
-          return {
+            return {
             model: params.checkpoint,
             messages: outboundMessages,
             stream: true,
@@ -2524,6 +2534,80 @@ export function createOpenAIStreamAdapter(): ChatModelAdapter {
             cancel_id: cancelId,
             ...(sandboxSessionId ? { session_id: sandboxSessionId } : {}),
             ...(useAdapter === undefined ? {} : { use_adapter: useAdapter }),
+            // Tier 1
+            ...(Array.isArray(params.stop) && params.stop.length > 0 ? { stop: params.stop } : {}),
+            ...(typeof params.seed === "number" ? { seed: params.seed } : {}),
+            // Tier 2
+            ...(typeof params.frequencyPenalty === "number" ? { frequency_penalty: params.frequencyPenalty } : {}),
+            ...(typeof params.n === "number" && params.n > 1 ? { n: params.n } : {}),
+            ...(typeof params.maxCompletionTokens === "number" && params.maxCompletionTokens > 0 ? { max_completion_tokens: params.maxCompletionTokens } : {}),
+            // Tier 3 — Advanced sampling
+            ...(typeof params.typicalP === "number" ? { typical_p: params.typicalP } : {}),
+            ...(typeof params.tfsZ === "number" ? { tfs_z: params.tfsZ } : {}),
+            ...(typeof params.topA === "number" ? { top_a: params.topA } : {}),
+            ...(typeof params.topNSigma === "number" ? { top_n_sigma: params.topNSigma } : {}),
+            ...(typeof params.smoothingFactor === "number" ? { smoothing_factor: params.smoothingFactor } : {}),
+            // Mirostat
+            ...(typeof params.mirostat === "number" ? { mirostat: params.mirostat } : {}),
+            ...(typeof params.mirostatTau === "number" ? { mirostat_tau: params.mirostatTau } : {}),
+            ...(typeof params.mirostatEta === "number" ? { mirostat_eta: params.mirostatEta } : {}),
+            // XTC
+            ...(typeof params.xtcProbability === "number" ? { xtc_probability: params.xtcProbability } : {}),
+            ...(typeof params.xtcThreshold === "number" ? { xtc_threshold: params.xtcThreshold } : {}),
+            // DRY
+            ...(typeof params.dryMultiplier === "number" ? { dry_multiplier: params.dryMultiplier } : {}),
+            ...(typeof params.dryBase === "number" ? { dry_base: params.dryBase } : {}),
+            ...(typeof params.dryAllowedLength === "number" ? { dry_allowed_length: params.dryAllowedLength } : {}),
+            ...(Array.isArray(params.drySequenceBreakers) && params.drySequenceBreakers.length > 0 ? { dry_sequence_breakers: params.drySequenceBreakers } : {}),
+            ...(typeof params.dryPenaltyLastN === "number" ? { dry_penalty_last_n: params.dryPenaltyLastN } : {}),
+            // Penalties
+            ...(typeof params.repeatLastN === "number" ? { repeat_last_n: params.repeatLastN } : {}),
+            ...(typeof params.penalizeNl === "boolean" ? { penalize_nl: params.penalizeNl } : {}),
+            // Dynamic temperature
+            ...(typeof params.dynatempRange === "number" ? { dynatemp_range: params.dynatempRange } : {}),
+            ...(typeof params.dynatempExponent === "number" ? { dynatemp_exponent: params.dynatempExponent } : {}),
+            // Adaptive
+            ...(typeof params.adaptiveTarget === "number" ? { adaptive_target: params.adaptiveTarget } : {}),
+            ...(typeof params.adaptiveDecay === "number" ? { adaptive_decay: params.adaptiveDecay } : {}),
+            // Logit bias
+            ...(params.logitBias != null ? { logit_bias: params.logitBias } : {}),
+            // Sampler order
+            ...(Array.isArray(params.samplers) && params.samplers.length > 0 ? { samplers: params.samplers } : {}),
+            // Grammar
+            ...(typeof params.grammar === "string" && params.grammar ? { grammar: params.grammar } : {}),
+            ...(typeof params.jsonSchema === "string" && params.jsonSchema ? { json_schema: params.jsonSchema } : {}),
+            // Logprobs
+            ...(typeof params.logprobs === "boolean" ? { logprobs: params.logprobs } : {}),
+            ...(typeof params.topLogprobs === "number" && params.topLogprobs > 0 ? { top_logprobs: params.topLogprobs } : {}),
+            ...(typeof params.nProbs === "number" && params.nProbs > 0 ? { n_probs: params.nProbs } : {}),
+            // Generation control
+            ...(typeof params.ignoreEos === "boolean" ? { ignore_eos: params.ignoreEos } : {}),
+            ...(typeof params.minKeep === "number" && params.minKeep > 0 ? { min_keep: params.minKeep } : {}),
+            // Tier 4 — Advanced
+            // Reasoning
+            ...(typeof params.reasoningFormat === "string" && params.reasoningFormat ? { reasoning_format: params.reasoningFormat } : {}),
+            ...(typeof params.reasoningControl === "boolean" ? { reasoning_control: params.reasoningControl } : {}),
+            ...(typeof params.reasoningBudgetTokens === "number" && params.reasoningBudgetTokens >= 0 ? { reasoning_budget_tokens: params.reasoningBudgetTokens } : {}),
+            ...(typeof params.reasoningBudgetStartTag === "string" && params.reasoningBudgetStartTag ? { reasoning_budget_start_tag: params.reasoningBudgetStartTag } : {}),
+            ...(typeof params.reasoningBudgetEndTag === "string" && params.reasoningBudgetEndTag ? { reasoning_budget_end_tag: params.reasoningBudgetEndTag } : {}),
+            ...(typeof params.reasoningBudgetMessage === "string" && params.reasoningBudgetMessage ? { reasoning_budget_message: params.reasoningBudgetMessage } : {}),
+            // Generation control
+            ...(typeof params.nKeep === "number" && params.nKeep > 0 ? { n_keep: params.nKeep } : {}),
+            ...(typeof params.nDiscard === "number" && params.nDiscard > 0 ? { n_discard: params.nDiscard } : {}),
+            ...(typeof params.nIndent === "number" && params.nIndent > 0 ? { n_indent: params.nIndent } : {}),
+            ...(typeof params.nCacheReuse === "number" && params.nCacheReuse > 0 ? { n_cache_reuse: params.nCacheReuse } : {}),
+            ...(typeof params.tMaxPredictMs === "number" && params.tMaxPredictMs > 0 ? { t_max_predict_ms: params.tMaxPredictMs } : {}),
+            // Output control
+            ...(typeof params.returnTokens === "boolean" ? { return_tokens: params.returnTokens } : {}),
+            ...(typeof params.returnProgress === "boolean" ? { return_progress: params.returnProgress } : {}),
+            ...(typeof params.postSamplingProbs === "boolean" ? { post_sampling_probs: params.postSamplingProbs } : {}),
+            ...(typeof params.timingsPerToken === "boolean" ? { timings_per_token: params.timingsPerToken } : {}),
+            ...(Array.isArray(params.responseFields) && params.responseFields.length > 0 ? { response_fields: params.responseFields } : {}),
+            ...(typeof params.backendSampling === "boolean" ? { backend_sampling: params.backendSampling } : {}),
+            // Advanced grammar
+            ...(typeof params.grammarLazy === "boolean" ? { grammar_lazy: params.grammarLazy } : {}),
+            ...(Array.isArray(params.grammarTriggers) && params.grammarTriggers.length > 0 ? { grammar_triggers: params.grammarTriggers } : {}),
+            ...(Array.isArray(params.preservedTokens) && params.preservedTokens.length > 0 ? { preserved_tokens: params.preservedTokens } : {}),
             ...(supportsReasoning
               ? reasoningStyle === "enable_thinking_effort"
                 ? // GLM-5.2-style: on/off gate plus an effort level. Disabling

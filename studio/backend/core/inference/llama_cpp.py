@@ -7665,12 +7665,65 @@ class LlamaCppBackend:
         max_tokens: Optional[int] = None,
         repetition_penalty: float = 1.0,
         presence_penalty: float = 0.0,
+        frequency_penalty: Optional[float] = None,
         stop: Optional[list[str]] = None,
         cancel_event: Optional[threading.Event] = None,
         enable_thinking: Optional[bool] = None,
         reasoning_effort: Optional[str] = None,
         preserve_thinking: Optional[bool] = None,
         seed: Optional[int] = None,
+        max_completion_tokens: Optional[int] = None,
+        n: Optional[int] = None,
+        logprobs: Optional[bool] = None,
+        top_logprobs: Optional[int] = None,
+        n_probs: Optional[int] = None,
+        typical_p: Optional[float] = None,
+        tfs_z: Optional[float] = None,
+        top_a: Optional[float] = None,
+        top_n_sigma: Optional[float] = None,
+        smoothing_factor: Optional[float] = None,
+        mirostat: Optional[int] = None,
+        mirostat_tau: Optional[float] = None,
+        mirostat_eta: Optional[float] = None,
+        xtc_probability: Optional[float] = None,
+        xtc_threshold: Optional[float] = None,
+        dry_multiplier: Optional[float] = None,
+        dry_base: Optional[float] = None,
+        dry_allowed_length: Optional[int] = None,
+        dry_sequence_breakers: Optional[list[str]] = None,
+        dry_penalty_last_n: Optional[int] = None,
+        repeat_last_n: Optional[int] = None,
+        penalize_nl: Optional[bool] = None,
+        dynatemp_range: Optional[float] = None,
+        dynatemp_exponent: Optional[float] = None,
+        adaptive_target: Optional[float] = None,
+        adaptive_decay: Optional[float] = None,
+        logit_bias: Optional[dict] = None,
+        samplers: Optional[list[str]] = None,
+        grammar: Optional[str] = None,
+        json_schema: Optional[str] = None,
+        ignore_eos: Optional[bool] = None,
+        min_keep: Optional[int] = None,
+        reasoning_format: Optional[str] = None,
+        reasoning_control: Optional[bool] = None,
+        reasoning_budget_tokens: Optional[int] = None,
+        reasoning_budget_start_tag: Optional[str] = None,
+        reasoning_budget_end_tag: Optional[str] = None,
+        reasoning_budget_message: Optional[str] = None,
+        n_keep: Optional[int] = None,
+        n_discard: Optional[int] = None,
+        n_indent: Optional[int] = None,
+        n_cache_reuse: Optional[int] = None,
+        t_max_predict_ms: Optional[int] = None,
+        return_tokens: Optional[bool] = None,
+        return_progress: Optional[bool] = None,
+        post_sampling_probs: Optional[bool] = None,
+        timings_per_token: Optional[bool] = None,
+        response_fields: Optional[list[str]] = None,
+        backend_sampling: Optional[bool] = None,
+        grammar_lazy: Optional[bool] = None,
+        grammar_triggers: Optional[list] = None,
+        preserved_tokens: Optional[list[int]] = None,
         _allow_respawn_retry: bool = True,
     ) -> Generator[Union[str, dict], None, None]:
         """
@@ -7706,13 +7759,134 @@ class LlamaCppBackend:
         payload["max_tokens"] = (
             max_tokens
             if max_tokens is not None
-            else (self._effective_context_length or _DEFAULT_MAX_TOKENS_FLOOR)
+            else (max_completion_tokens or self._effective_context_length or _DEFAULT_MAX_TOKENS_FLOOR)
         )
         if stop:
             payload["stop"] = stop
         if seed is not None:
             payload["seed"] = seed
+        if frequency_penalty is not None:
+            payload["frequency_penalty"] = frequency_penalty
+        if n is not None:
+            payload["n_cmpl"] = n
+        # Map logprobs/top_logprobs to n_probs
+        _n_probs = n_probs
+        if _n_probs is None and logprobs:
+            _n_probs = max(top_logprobs if top_logprobs is not None else 1, 1)
+        elif _n_probs is None and top_logprobs is not None:
+            _n_probs = top_logprobs
+        if _n_probs is not None:
+            payload["n_probs"] = _n_probs
         payload["stream_options"] = {"include_usage": True}
+        # ── Advanced sampling ──
+        if typical_p is not None:
+            payload["typical_p"] = typical_p
+        if tfs_z is not None:
+            payload["tfs_z"] = tfs_z
+        if top_a is not None:
+            payload["top_a"] = top_a
+        if top_n_sigma is not None:
+            payload["top_n_sigma"] = top_n_sigma
+        if smoothing_factor is not None:
+            payload["smoothing_factor"] = smoothing_factor
+        # ── Mirostat ──
+        if mirostat is not None:
+            payload["mirostat"] = mirostat
+        if mirostat_tau is not None:
+            payload["mirostat_tau"] = mirostat_tau
+        if mirostat_eta is not None:
+            payload["mirostat_eta"] = mirostat_eta
+        # ── XTC ──
+        if xtc_probability is not None:
+            payload["xtc_probability"] = xtc_probability
+        if xtc_threshold is not None:
+            payload["xtc_threshold"] = xtc_threshold
+        # ── DRY ──
+        if dry_multiplier is not None:
+            payload["dry_multiplier"] = dry_multiplier
+        if dry_base is not None:
+            payload["dry_base"] = dry_base
+        if dry_allowed_length is not None:
+            payload["dry_allowed_length"] = dry_allowed_length
+        if dry_sequence_breakers is not None:
+            payload["dry_sequence_breakers"] = dry_sequence_breakers
+        if dry_penalty_last_n is not None:
+            payload["dry_penalty_last_n"] = dry_penalty_last_n
+        # ── Penalties ──
+        if repeat_last_n is not None:
+            payload["repeat_last_n"] = repeat_last_n
+        if penalize_nl is not None:
+            payload["penalize_nl"] = penalize_nl
+        # ── Dynamic temperature ──
+        if dynatemp_range is not None:
+            payload["dynatemp_range"] = dynatemp_range
+        if dynatemp_exponent is not None:
+            payload["dynatemp_exponent"] = dynatemp_exponent
+        # ── Adaptive ──
+        if adaptive_target is not None:
+            payload["adaptive_target"] = adaptive_target
+        if adaptive_decay is not None:
+            payload["adaptive_decay"] = adaptive_decay
+        # ── Logit bias ──
+        if logit_bias is not None:
+            payload["logit_bias"] = logit_bias
+        # ── Samplers ──
+        if samplers is not None:
+            payload["samplers"] = samplers
+        # ── Grammar ──
+        if grammar is not None:
+            payload["grammar"] = grammar
+        if json_schema is not None:
+            payload["json_schema"] = json_schema
+        # ── Generation control ──
+        if ignore_eos is not None:
+            payload["ignore_eos"] = ignore_eos
+        if min_keep is not None:
+            payload["min_keep"] = min_keep
+        # ── Reasoning ──
+        if reasoning_format is not None:
+            payload["reasoning_format"] = reasoning_format
+        if reasoning_control is not None:
+            payload["reasoning_control"] = reasoning_control
+        if reasoning_budget_tokens is not None:
+            payload["reasoning_budget_tokens"] = reasoning_budget_tokens
+        if reasoning_budget_start_tag is not None:
+            payload["reasoning_budget_start_tag"] = reasoning_budget_start_tag
+        if reasoning_budget_end_tag is not None:
+            payload["reasoning_budget_end_tag"] = reasoning_budget_end_tag
+        if reasoning_budget_message is not None:
+            payload["reasoning_budget_message"] = reasoning_budget_message
+        # ── Generation control ──
+        if n_keep is not None:
+            payload["n_keep"] = n_keep
+        if n_discard is not None:
+            payload["n_discard"] = n_discard
+        if n_indent is not None:
+            payload["n_indent"] = n_indent
+        if n_cache_reuse is not None:
+            payload["n_cache_reuse"] = n_cache_reuse
+        if t_max_predict_ms is not None:
+            payload["t_max_predict_ms"] = t_max_predict_ms
+        # ── Output control ──
+        if return_tokens is not None:
+            payload["return_tokens"] = return_tokens
+        if return_progress is not None:
+            payload["return_progress"] = return_progress
+        if post_sampling_probs is not None:
+            payload["post_sampling_probs"] = post_sampling_probs
+        if timings_per_token is not None:
+            payload["timings_per_token"] = timings_per_token
+        if response_fields is not None:
+            payload["response_fields"] = response_fields
+        if backend_sampling is not None:
+            payload["backend_sampling"] = backend_sampling
+        # ── Advanced grammar ──
+        if grammar_lazy is not None:
+            payload["grammar_lazy"] = grammar_lazy
+        if grammar_triggers is not None:
+            payload["grammar_triggers"] = grammar_triggers
+        if preserved_tokens is not None:
+            payload["preserved_tokens"] = preserved_tokens
 
         url = f"{self.base_url}/v1/chat/completions"
         cumulative = ""
@@ -7859,12 +8033,65 @@ class LlamaCppBackend:
                     max_tokens = max_tokens,
                     repetition_penalty = repetition_penalty,
                     presence_penalty = presence_penalty,
+                    frequency_penalty = frequency_penalty,
                     stop = stop,
                     cancel_event = cancel_event,
                     enable_thinking = enable_thinking,
                     reasoning_effort = reasoning_effort,
                     preserve_thinking = preserve_thinking,
                     seed = seed,
+                    max_completion_tokens = max_completion_tokens,
+                    n = n,
+                    logprobs = logprobs,
+                    top_logprobs = top_logprobs,
+                    n_probs = n_probs,
+                    typical_p = typical_p,
+                    tfs_z = tfs_z,
+                    top_a = top_a,
+                    top_n_sigma = top_n_sigma,
+                    smoothing_factor = smoothing_factor,
+                    mirostat = mirostat,
+                    mirostat_tau = mirostat_tau,
+                    mirostat_eta = mirostat_eta,
+                    xtc_probability = xtc_probability,
+                    xtc_threshold = xtc_threshold,
+                    dry_multiplier = dry_multiplier,
+                    dry_base = dry_base,
+                    dry_allowed_length = dry_allowed_length,
+                    dry_sequence_breakers = dry_sequence_breakers,
+                    dry_penalty_last_n = dry_penalty_last_n,
+                    repeat_last_n = repeat_last_n,
+                    penalize_nl = penalize_nl,
+                    dynatemp_range = dynatemp_range,
+                    dynatemp_exponent = dynatemp_exponent,
+                    adaptive_target = adaptive_target,
+                    adaptive_decay = adaptive_decay,
+                    logit_bias = logit_bias,
+                    samplers = samplers,
+                    grammar = grammar,
+                    json_schema = json_schema,
+                    ignore_eos = ignore_eos,
+                    min_keep = min_keep,
+                    reasoning_format = reasoning_format,
+                    reasoning_control = reasoning_control,
+                    reasoning_budget_tokens = reasoning_budget_tokens,
+                    reasoning_budget_start_tag = reasoning_budget_start_tag,
+                    reasoning_budget_end_tag = reasoning_budget_end_tag,
+                    reasoning_budget_message = reasoning_budget_message,
+                    n_keep = n_keep,
+                    n_discard = n_discard,
+                    n_indent = n_indent,
+                    n_cache_reuse = n_cache_reuse,
+                    t_max_predict_ms = t_max_predict_ms,
+                    return_tokens = return_tokens,
+                    return_progress = return_progress,
+                    post_sampling_probs = post_sampling_probs,
+                    timings_per_token = timings_per_token,
+                    response_fields = response_fields,
+                    backend_sampling = backend_sampling,
+                    grammar_lazy = grammar_lazy,
+                    grammar_triggers = grammar_triggers,
+                    preserved_tokens = preserved_tokens,
                     _allow_respawn_retry = False,
                 )
                 return
@@ -7889,6 +8116,7 @@ class LlamaCppBackend:
         max_tokens: Optional[int] = None,
         repetition_penalty: float = 1.0,
         presence_penalty: float = 0.0,
+        frequency_penalty: Optional[float] = None,
         stop: Optional[list[str]] = None,
         cancel_event: Optional[threading.Event] = None,
         enable_thinking: Optional[bool] = None,
@@ -7903,6 +8131,58 @@ class LlamaCppBackend:
         disable_parallel_tool_use: bool = False,
         confirm_tool_calls: bool = False,
         bypass_permissions: bool = False,
+        max_completion_tokens: Optional[int] = None,
+        n: Optional[int] = None,
+        logprobs: Optional[bool] = None,
+        top_logprobs: Optional[int] = None,
+        n_probs: Optional[int] = None,
+        typical_p: Optional[float] = None,
+        tfs_z: Optional[float] = None,
+        top_a: Optional[float] = None,
+        top_n_sigma: Optional[float] = None,
+        smoothing_factor: Optional[float] = None,
+        mirostat: Optional[int] = None,
+        mirostat_tau: Optional[float] = None,
+        mirostat_eta: Optional[float] = None,
+        xtc_probability: Optional[float] = None,
+        xtc_threshold: Optional[float] = None,
+        dry_multiplier: Optional[float] = None,
+        dry_base: Optional[float] = None,
+        dry_allowed_length: Optional[int] = None,
+        dry_sequence_breakers: Optional[list[str]] = None,
+        dry_penalty_last_n: Optional[int] = None,
+        repeat_last_n: Optional[int] = None,
+        penalize_nl: Optional[bool] = None,
+        dynatemp_range: Optional[float] = None,
+        dynatemp_exponent: Optional[float] = None,
+        adaptive_target: Optional[float] = None,
+        adaptive_decay: Optional[float] = None,
+        logit_bias: Optional[dict] = None,
+        samplers: Optional[list[str]] = None,
+        grammar: Optional[str] = None,
+        json_schema: Optional[str] = None,
+        ignore_eos: Optional[bool] = None,
+        min_keep: Optional[int] = None,
+        reasoning_format: Optional[str] = None,
+        reasoning_control: Optional[bool] = None,
+        reasoning_budget_tokens: Optional[int] = None,
+        reasoning_budget_start_tag: Optional[str] = None,
+        reasoning_budget_end_tag: Optional[str] = None,
+        reasoning_budget_message: Optional[str] = None,
+        n_keep: Optional[int] = None,
+        n_discard: Optional[int] = None,
+        n_indent: Optional[int] = None,
+        n_cache_reuse: Optional[int] = None,
+        t_max_predict_ms: Optional[int] = None,
+        return_tokens: Optional[bool] = None,
+        return_progress: Optional[bool] = None,
+        post_sampling_probs: Optional[bool] = None,
+        timings_per_token: Optional[bool] = None,
+        response_fields: Optional[list[str]] = None,
+        backend_sampling: Optional[bool] = None,
+        grammar_lazy: Optional[bool] = None,
+        grammar_triggers: Optional[list] = None,
+        preserved_tokens: Optional[list[int]] = None,
     ) -> Generator[dict, None, None]:
         """
         Agentic loop: let the model call tools, execute them, and continue.
@@ -8020,12 +8300,133 @@ class LlamaCppBackend:
             payload["max_tokens"] = (
                 max_tokens
                 if max_tokens is not None
-                else (self._effective_context_length or _DEFAULT_MAX_TOKENS_FLOOR)
+                else (max_completion_tokens or self._effective_context_length or _DEFAULT_MAX_TOKENS_FLOOR)
             )
             if stop:
                 payload["stop"] = stop
             if seed is not None:
                 payload["seed"] = seed
+            if frequency_penalty is not None:
+                payload["frequency_penalty"] = frequency_penalty
+            if n is not None:
+                payload["n_cmpl"] = n
+            # Map logprobs/top_logprobs to n_probs
+            _n_probs = n_probs
+            if _n_probs is None and logprobs:
+                _n_probs = max(top_logprobs if top_logprobs is not None else 1, 1)
+            elif _n_probs is None and top_logprobs is not None:
+                _n_probs = top_logprobs
+            if _n_probs is not None:
+                payload["n_probs"] = _n_probs
+            # ── Advanced sampling ──
+            if typical_p is not None:
+                payload["typical_p"] = typical_p
+            if tfs_z is not None:
+                payload["tfs_z"] = tfs_z
+            if top_a is not None:
+                payload["top_a"] = top_a
+            if top_n_sigma is not None:
+                payload["top_n_sigma"] = top_n_sigma
+            if smoothing_factor is not None:
+                payload["smoothing_factor"] = smoothing_factor
+            # ── Mirostat ──
+            if mirostat is not None:
+                payload["mirostat"] = mirostat
+            if mirostat_tau is not None:
+                payload["mirostat_tau"] = mirostat_tau
+            if mirostat_eta is not None:
+                payload["mirostat_eta"] = mirostat_eta
+            # ── XTC ──
+            if xtc_probability is not None:
+                payload["xtc_probability"] = xtc_probability
+            if xtc_threshold is not None:
+                payload["xtc_threshold"] = xtc_threshold
+            # ── DRY ──
+            if dry_multiplier is not None:
+                payload["dry_multiplier"] = dry_multiplier
+            if dry_base is not None:
+                payload["dry_base"] = dry_base
+            if dry_allowed_length is not None:
+                payload["dry_allowed_length"] = dry_allowed_length
+            if dry_sequence_breakers is not None:
+                payload["dry_sequence_breakers"] = dry_sequence_breakers
+            if dry_penalty_last_n is not None:
+                payload["dry_penalty_last_n"] = dry_penalty_last_n
+            # ── Penalties ──
+            if repeat_last_n is not None:
+                payload["repeat_last_n"] = repeat_last_n
+            if penalize_nl is not None:
+                payload["penalize_nl"] = penalize_nl
+            # ── Dynamic temperature ──
+            if dynatemp_range is not None:
+                payload["dynatemp_range"] = dynatemp_range
+            if dynatemp_exponent is not None:
+                payload["dynatemp_exponent"] = dynatemp_exponent
+            # ── Adaptive ──
+            if adaptive_target is not None:
+                payload["adaptive_target"] = adaptive_target
+            if adaptive_decay is not None:
+                payload["adaptive_decay"] = adaptive_decay
+            # ── Logit bias ──
+            if logit_bias is not None:
+                payload["logit_bias"] = logit_bias
+            # ── Samplers ──
+            if samplers is not None:
+                payload["samplers"] = samplers
+            # ── Grammar ──
+            if grammar is not None:
+                payload["grammar"] = grammar
+            if json_schema is not None:
+                payload["json_schema"] = json_schema
+            # ── Generation control ──
+            if ignore_eos is not None:
+                payload["ignore_eos"] = ignore_eos
+            if min_keep is not None:
+                payload["min_keep"] = min_keep
+            # ── Reasoning ──
+            if reasoning_format is not None:
+                payload["reasoning_format"] = reasoning_format
+            if reasoning_control is not None:
+                payload["reasoning_control"] = reasoning_control
+            if reasoning_budget_tokens is not None:
+                payload["reasoning_budget_tokens"] = reasoning_budget_tokens
+            if reasoning_budget_start_tag is not None:
+                payload["reasoning_budget_start_tag"] = reasoning_budget_start_tag
+            if reasoning_budget_end_tag is not None:
+                payload["reasoning_budget_end_tag"] = reasoning_budget_end_tag
+            if reasoning_budget_message is not None:
+                payload["reasoning_budget_message"] = reasoning_budget_message
+            # ── Generation control ──
+            if n_keep is not None:
+                payload["n_keep"] = n_keep
+            if n_discard is not None:
+                payload["n_discard"] = n_discard
+            if n_indent is not None:
+                payload["n_indent"] = n_indent
+            if n_cache_reuse is not None:
+                payload["n_cache_reuse"] = n_cache_reuse
+            if t_max_predict_ms is not None:
+                payload["t_max_predict_ms"] = t_max_predict_ms
+            # ── Output control ──
+            if return_tokens is not None:
+                payload["return_tokens"] = return_tokens
+            if return_progress is not None:
+                payload["return_progress"] = return_progress
+            if post_sampling_probs is not None:
+                payload["post_sampling_probs"] = post_sampling_probs
+            if timings_per_token is not None:
+                payload["timings_per_token"] = timings_per_token
+            if response_fields is not None:
+                payload["response_fields"] = response_fields
+            if backend_sampling is not None:
+                payload["backend_sampling"] = backend_sampling
+            # ── Advanced grammar ──
+            if grammar_lazy is not None:
+                payload["grammar_lazy"] = grammar_lazy
+            if grammar_triggers is not None:
+                payload["grammar_triggers"] = grammar_triggers
+            if preserved_tokens is not None:
+                payload["preserved_tokens"] = preserved_tokens
 
             try:
                 _auth_headers = (

@@ -434,7 +434,8 @@ class TestChatCompletionRequestToolFields:
         assert body["error"]["param"] == "confirm_tool_calls"
         assert "only supported for local streaming tools" in body["error"]["message"]
 
-    def test_logprobs_rejected_until_supported(self, monkeypatch):
+    def test_logprobs_accepted(self, monkeypatch):
+        """logprobs is no longer rejected — it is accepted and mapped to n_probs."""
         class _UnusedBackend:
             is_loaded = False
 
@@ -447,9 +448,16 @@ class TestChatCompletionRequestToolFields:
                 "logprobs": True,
             },
         )
-        self._assert_unsupported_param(resp, "logprobs")
+        # logprobs is no longer rejected; the request passes validation.
+        # It may fail downstream (e.g. missing API key) but should NOT be 400
+        # with code=unsupported_parameter for logprobs.
+        self.assertNotEqual(
+            (resp.json() or {}).get("error", {}).get("code"),
+            "unsupported_parameter",
+        )
 
-    def test_top_logprobs_rejected_until_supported(self, monkeypatch):
+    def test_top_logprobs_accepted(self, monkeypatch):
+        """top_logprobs is no longer rejected — it is accepted and mapped to n_probs."""
         class _UnusedBackend:
             is_loaded = False
 
@@ -462,7 +470,11 @@ class TestChatCompletionRequestToolFields:
                 "top_logprobs": 3,
             },
         )
-        self._assert_unsupported_param(resp, "top_logprobs")
+        # top_logprobs is no longer rejected; the request passes validation.
+        self.assertNotEqual(
+            (resp.json() or {}).get("error", {}).get("code"),
+            "unsupported_parameter",
+        )
 
     def test_n_rejected_for_gguf_streaming_path(self, monkeypatch):
         class _GGUFBackend:

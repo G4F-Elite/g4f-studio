@@ -406,6 +406,104 @@ export interface OpenAIChatCompletionsRequest {
    * sends it so the context-usage bar and tok/s readout populate.
    */
   stream_options?: { include_usage?: boolean } | null;
+
+  // ── Tier 1 — Backend params ──
+  /** PRNG seed (-1 = random). */
+  seed?: number;
+  /** Stop sequences. */
+  stop?: string[];
+
+  // ── Tier 2 — Forwarded params ──
+  /** Frequency penalty (0-2). */
+  frequency_penalty?: number;
+  /** Number of completions to generate (1-10). */
+  n?: number;
+  /** Alternative to max_tokens. */
+  max_completion_tokens?: number;
+
+  // ── Tier 3 — Advanced sampling ──
+  typical_p?: number;
+  tfs_z?: number;
+  top_a?: number;
+  top_n_sigma?: number;
+  smoothing_factor?: number;
+
+  // ── Mirostat ──
+  mirostat?: number;
+  mirostat_tau?: number;
+  mirostat_eta?: number;
+
+  // ── XTC ──
+  xtc_probability?: number;
+  xtc_threshold?: number;
+
+  // ── DRY ──
+  dry_multiplier?: number;
+  dry_base?: number;
+  dry_allowed_length?: number;
+  dry_sequence_breakers?: string[];
+  dry_penalty_last_n?: number;
+
+  // ── Penalties ──
+  repeat_last_n?: number;
+  penalize_nl?: boolean;
+
+  // ── Dynamic temperature ──
+  dynatemp_range?: number;
+  dynatemp_exponent?: number;
+
+  // ── Adaptive ──
+  adaptive_target?: number;
+  adaptive_decay?: number;
+
+  // ── Logit bias ──
+  logit_bias?: Record<string, number> | null;
+
+  // ── Sampler order ──
+  samplers?: string[] | null;
+
+  // ── Grammar ──
+  grammar?: string;
+  json_schema?: string;
+
+  // ── Logprobs ──
+  logprobs?: boolean;
+  top_logprobs?: number;
+  n_probs?: number;
+
+  // ── Generation control ──
+  ignore_eos?: boolean;
+  min_keep?: number;
+
+  // ── Tier 4 — Advanced ──
+
+  // ── Reasoning ──
+  reasoning_format?: string;
+  reasoning_control?: boolean;
+  reasoning_budget_tokens?: number;
+  reasoning_budget_start_tag?: string;
+  reasoning_budget_end_tag?: string;
+  reasoning_budget_message?: string;
+
+  // ── Generation control ──
+  n_keep?: number;
+  n_discard?: number;
+  n_indent?: number;
+  n_cache_reuse?: number;
+  t_max_predict_ms?: number;
+
+  // ── Output control ──
+  return_tokens?: boolean;
+  return_progress?: boolean;
+  post_sampling_probs?: boolean;
+  timings_per_token?: boolean;
+  response_fields?: string[];
+  backend_sampling?: boolean;
+
+  // ── Advanced grammar ──
+  grammar_lazy?: boolean;
+  grammar_triggers?: unknown[];
+  preserved_tokens?: number[];
 }
 
 export interface OpenAIChatDelta {

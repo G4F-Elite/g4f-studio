@@ -185,7 +185,58 @@ class GenerateRequest(BaseModel):
     max_new_tokens: int = Field(2048, ge = 1, le = 4096, description = "Maximum tokens to generate")
     repetition_penalty: float = Field(1.0, ge = 1.0, le = 2.0, description = "Repetition penalty")
     presence_penalty: float = Field(0.0, ge = 0.0, le = 2.0, description = "Presence penalty")
+    frequency_penalty: Optional[float] = Field(None, ge = -2.0, le = 2.0, description = "Frequency penalty")
     image_base64: Optional[str] = Field(None, description = "Base64 encoded image for vision models")
+    seed: Optional[int] = Field(None, description = "Best-effort deterministic sampling seed")
+    stop: Optional[List[str]] = Field(None, description = "Stop sequences")
+    typical_p: Optional[float] = Field(None, description = "Typical-p sampling (0.0-1.0)")
+    tfs_z: Optional[float] = Field(None, description = "Tail-free sampling z (0.0-1.0)")
+    top_a: Optional[float] = Field(None, description = "Top-a sampling (0.0-1.0)")
+    top_n_sigma: Optional[float] = Field(None, description = "Top-n-sigma sampling")
+    smoothing_factor: Optional[float] = Field(None, description = "Smoothing factor (0.0-1.0)")
+    mirostat: Optional[int] = Field(None, description = "Mirostat mode (0=off, 1=v1, 2=v2)")
+    mirostat_tau: Optional[float] = Field(None, description = "Mirostat target entropy")
+    mirostat_eta: Optional[float] = Field(None, description = "Mirostat learning rate")
+    xtc_probability: Optional[float] = Field(None, description = "XTC probability (0.0-1.0)")
+    xtc_threshold: Optional[float] = Field(None, description = "XTC threshold (0.0-1.0)")
+    dry_multiplier: Optional[float] = Field(None, description = "DRY repetition penalty multiplier")
+    dry_base: Optional[float] = Field(None, description = "DRY base")
+    dry_allowed_length: Optional[int] = Field(None, description = "DRY allowed length")
+    dry_sequence_breakers: Optional[List[str]] = Field(None, description = "DRY sequence breakers")
+    dry_penalty_last_n: Optional[int] = Field(None, description = "DRY penalty last n")
+    repeat_last_n: Optional[int] = Field(None, description = "Repeat last n tokens")
+    penalize_nl: Optional[bool] = Field(None, description = "Penalize newlines")
+    dynatemp_range: Optional[float] = Field(None, description = "Dynamic temperature range")
+    dynatemp_exponent: Optional[float] = Field(None, description = "Dynamic temperature exponent")
+    adaptive_target: Optional[float] = Field(None, description = "Adaptive target")
+    adaptive_decay: Optional[float] = Field(None, description = "Adaptive decay")
+    logit_bias: Optional[Dict[str, float]] = Field(None, description = "Logit bias")
+    samplers: Optional[List[str]] = Field(None, description = "Sampler order")
+    grammar: Optional[str] = Field(None, description = "GBNF grammar string")
+    json_schema: Optional[str] = Field(None, description = "JSON schema for grammar-constrained generation")
+    reasoning_format: Optional[str] = Field(None, description = "Reasoning format")
+    reasoning_control: Optional[bool] = Field(None, description = "Reasoning control")
+    reasoning_budget_tokens: Optional[int] = Field(None, description = "Reasoning budget tokens")
+    n_keep: Optional[int] = Field(None, description = "N-keep for prompt caching")
+    n_discard: Optional[int] = Field(None, description = "N-discard tokens from prompt")
+    n_indent: Optional[int] = Field(None, description = "N-indent for JSON output")
+    n_cmpl: Optional[int] = Field(None, description = "N-completions (equivalent to OpenAI 'n')")
+    n_cache_reuse: Optional[int] = Field(None, description = "N-cache-reuse for KV cache reuse")
+    t_max_predict_ms: Optional[int] = Field(None, description = "Time-bounded generation")
+    min_keep: Optional[int] = Field(None, description = "Min keep for top_k/top_p")
+    ignore_eos: Optional[bool] = Field(None, description = "Ignore EOS token")
+    return_tokens: Optional[bool] = Field(None, description = "Return token-level information")
+    return_progress: Optional[bool] = Field(None, description = "Return generation progress events")
+    post_sampling_probs: Optional[bool] = Field(None, description = "Post-sampling probabilities")
+    timings_per_token: Optional[bool] = Field(None, description = "Per-token timing information")
+    response_fields: Optional[List[str]] = Field(None, description = "Response field filter")
+    backend_sampling: Optional[bool] = Field(None, description = "Use backend sampling")
+    grammar_lazy: Optional[bool] = Field(None, description = "Lazy grammar evaluation")
+    grammar_triggers: Optional[List[Any]] = Field(None, description = "Grammar trigger tokens")
+    preserved_tokens: Optional[List[int]] = Field(None, description = "Preserved token IDs")
+    n_probs: Optional[int] = Field(None, description = "Number of top token probabilities")
+    logprobs: Optional[bool] = Field(None, description = "Whether to return log probabilities")
+    top_logprobs: Optional[int] = Field(None, description = "Number of most likely tokens per position")
 
 
 class LoadResponse(BaseModel):
@@ -965,6 +1016,98 @@ class ChatCompletionRequest(BaseModel):
             "https://platform.claude.com/docs/en/build-with-claude/fast-mode"
         ),
     )
+
+    # ── OpenAI-standard frequency_penalty (accepted via extra='allow' but dropped) ──
+    frequency_penalty: Optional[float] = Field(
+        None,
+        ge = -2.0,
+        le = 2.0,
+        description = (
+            "Number between -2.0 and 2.0. Positive values penalize new tokens based on "
+            "their existing frequency in the text so far, decreasing the model's "
+            "likelihood to repeat the same line verbatim."
+        ),
+    )
+
+    # ── Advanced sampling (x-unsloth llama.cpp passthrough) ──
+    typical_p: Optional[float] = Field(None, description = "[x-unsloth] Typical-p sampling (0.0-1.0, default 1.0)")
+    tfs_z: Optional[float] = Field(None, description = "[x-unsloth] Tail-free sampling z (0.0-1.0, default 1.0)")
+    top_a: Optional[float] = Field(None, description = "[x-unsloth] Top-a sampling (0.0-1.0, default 0.0)")
+    top_n_sigma: Optional[float] = Field(None, description = "[x-unsloth] Top-n-sigma sampling (default -1.0)")
+    smoothing_factor: Optional[float] = Field(None, description = "[x-unsloth] Smoothing factor (0.0-1.0)")
+
+    # ── Mirostat (x-unsloth) ──
+    mirostat: Optional[int] = Field(None, description = "[x-unsloth] Mirostat mode (0=off, 1=v1, 2=v2, default 0)")
+    mirostat_tau: Optional[float] = Field(None, description = "[x-unsloth] Mirostat target entropy (0.0-10.0, default 5.0)")
+    mirostat_eta: Optional[float] = Field(None, description = "[x-unsloth] Mirostat learning rate (0.0-1.0, default 0.1)")
+
+    # ── XTC (x-unsloth) ──
+    xtc_probability: Optional[float] = Field(None, description = "[x-unsloth] XTC probability (0.0-1.0, default 0.0)")
+    xtc_threshold: Optional[float] = Field(None, description = "[x-unsloth] XTC threshold (0.0-1.0, default 0.1)")
+
+    # ── DRY (x-unsloth) ──
+    dry_multiplier: Optional[float] = Field(None, description = "[x-unsloth] DRY repetition penalty multiplier (0.0-10.0, default 0.0)")
+    dry_base: Optional[float] = Field(None, description = "[x-unsloth] DRY base (1.0-3.0, default 1.75)")
+    dry_allowed_length: Optional[int] = Field(None, description = "[x-unsloth] DRY allowed length (0-20, default 2)")
+    dry_sequence_breakers: Optional[List[str]] = Field(None, description = "[x-unsloth] DRY sequence breakers")
+    dry_penalty_last_n: Optional[int] = Field(None, description = "[x-unsloth] DRY penalty last n (default -1)")
+
+    # ── Penalties (x-unsloth) ──
+    repeat_last_n: Optional[int] = Field(None, description = "[x-unsloth] Repeat last n tokens (-1 to 2048, default 64)")
+    penalize_nl: Optional[bool] = Field(None, description = "[x-unsloth] Penalize newlines (default false)")
+
+    # ── Dynamic temperature (x-unsloth) ──
+    dynatemp_range: Optional[float] = Field(None, description = "[x-unsloth] Dynamic temperature range (0.0-10.0, default 0.0)")
+    dynatemp_exponent: Optional[float] = Field(None, description = "[x-unsloth] Dynamic temperature exponent (0.0-5.0, default 1.0)")
+
+    # ── Adaptive (x-unsloth) ──
+    adaptive_target: Optional[float] = Field(None, description = "[x-unsloth] Adaptive target (default -1.0)")
+    adaptive_decay: Optional[float] = Field(None, description = "[x-unsloth] Adaptive decay (0.0-1.0, default 0.9)")
+
+    # ── Logit bias (x-unsloth) ──
+    logit_bias: Optional[Dict[str, float]] = Field(None, description = "[x-unsloth] Logit bias as dict of token_id->bias")
+
+    # ── Sampler order (x-unsloth) ──
+    samplers: Optional[List[str]] = Field(None, description = "[x-unsloth] Sampler order list")
+
+    # ── Grammar (x-unsloth) ──
+    grammar: Optional[str] = Field(None, description = "[x-unsloth] GBNF grammar string for constrained generation")
+    json_schema: Optional[str] = Field(None, description = "[x-unsloth] JSON schema string for grammar-constrained generation")
+
+    # ── Logprobs (x-unsloth) — direct n_probs passthrough ──
+    n_probs: Optional[int] = Field(None, description = "[x-unsloth] Number of top token probabilities (0-100, default 0). When set, overrides logprobs/top_logprobs mapping.")
+
+    # ── Generation control (x-unsloth) ──
+    ignore_eos: Optional[bool] = Field(None, description = "[x-unsloth] Ignore EOS token (default false)")
+    min_keep: Optional[int] = Field(None, description = "[x-unsloth] Min keep for top_k/top_p (0-100, default 0)")
+
+    # ── Reasoning (x-unsloth) ──
+    reasoning_format: Optional[str] = Field(None, description = "[x-unsloth] Reasoning format ('auto', 'none', 'deepseek')")
+    reasoning_control: Optional[bool] = Field(None, description = "[x-unsloth] Reasoning control toggle (default false)")
+    reasoning_budget_tokens: Optional[int] = Field(None, description = "[x-unsloth] Reasoning budget tokens (default -1)")
+    reasoning_budget_start_tag: Optional[str] = Field(None, description = "[x-unsloth] Reasoning budget start tag")
+    reasoning_budget_end_tag: Optional[str] = Field(None, description = "[x-unsloth] Reasoning budget end tag")
+    reasoning_budget_message: Optional[str] = Field(None, description = "[x-unsloth] Reasoning budget message")
+
+    # ── Generation control (x-unsloth) ──
+    n_keep: Optional[int] = Field(None, description = "[x-unsloth] N-keep for prompt caching (0-4096, default 0)")
+    n_discard: Optional[int] = Field(None, description = "[x-unsloth] N-discard tokens from prompt (0-4096, default 0)")
+    n_indent: Optional[int] = Field(None, description = "[x-unsloth] N-indent for JSON output (0-100, default 0)")
+    n_cache_reuse: Optional[int] = Field(None, description = "[x-unsloth] N-cache-reuse for KV cache reuse (0-4096, default 0)")
+    t_max_predict_ms: Optional[int] = Field(None, description = "[x-unsloth] T-max-predict-ms for time-bounded generation (0-600000, default 0)")
+
+    # ── Output control (x-unsloth) ──
+    return_tokens: Optional[bool] = Field(None, description = "[x-unsloth] Return token-level information (default false)")
+    return_progress: Optional[bool] = Field(None, description = "[x-unsloth] Return generation progress events (default false)")
+    post_sampling_probs: Optional[bool] = Field(None, description = "[x-unsloth] Post-sampling probabilities (default false)")
+    timings_per_token: Optional[bool] = Field(None, description = "[x-unsloth] Per-token timing information (default false)")
+    response_fields: Optional[List[str]] = Field(None, description = "[x-unsloth] Response field filter")
+    backend_sampling: Optional[bool] = Field(None, description = "[x-unsloth] Use backend sampling (default false)")
+
+    # ── Advanced grammar (x-unsloth) ──
+    grammar_lazy: Optional[bool] = Field(None, description = "[x-unsloth] Lazy grammar evaluation (default false)")
+    grammar_triggers: Optional[List[Any]] = Field(None, description = "[x-unsloth] Grammar trigger tokens")
+    preserved_tokens: Optional[List[int]] = Field(None, description = "[x-unsloth] Preserved token IDs")
 
     @model_validator(mode = "after")
     def _resolve_missing_tool_call_ids(self) -> "ChatCompletionRequest":

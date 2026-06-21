@@ -1826,6 +1826,609 @@ export function ChatSettingsPanel({
           </div>
         </CollapsibleSection>
 
+        {/* ── Advanced Sampling ── */}
+        {!isExternalModel ? (
+          <CollapsibleSection label="Advanced Sampling" defaultOpen={true}>
+            <div className="flex flex-col gap-5 pt-1">
+              <ParamSlider
+                label="Seed"
+                value={params.seed ?? -1}
+                min={-1}
+                max={2147483647}
+                step={1}
+                onChange={set("seed")}
+                displayValue={params.seed === -1 ? "Random" : undefined}
+                info="Reproducibility seed. -1 = random."
+              />
+              <TagInputRow
+                label="Stop Sequences"
+                value={params.stop}
+                onChange={set("stop")}
+                parse={(s) => s}
+                info="Stop sequences. Generation halts when any string is matched."
+                placeholder="Comma-separated stop sequences"
+              />
+              <ParamSlider
+                label="Typical P"
+                value={params.typicalP ?? 1.0}
+                min={0}
+                max={1}
+                step={0.01}
+                onChange={set("typicalP")}
+                displayValue={params.typicalP === 1 ? "Off" : undefined}
+                info="Typical sampling. 1.0 = disabled."
+              />
+              <ParamSlider
+                label="TFS Z"
+                value={params.tfsZ ?? 1.0}
+                min={0}
+                max={1}
+                step={0.01}
+                onChange={set("tfsZ")}
+                displayValue={params.tfsZ === 1 ? "Off" : undefined}
+                info="Tail Free Sampling. 1.0 = disabled."
+              />
+              <ParamSlider
+                label="Top A"
+                value={params.topA ?? 0.0}
+                min={0}
+                max={1}
+                step={0.01}
+                onChange={set("topA")}
+                displayValue={params.topA === 0 ? "Off" : undefined}
+                info="Top-A sampling. 0.0 = disabled."
+              />
+              <ParamSlider
+                label="Top-N-Sigma"
+                value={params.topNSigma ?? -1}
+                min={-1}
+                max={10}
+                step={0.1}
+                onChange={set("topNSigma")}
+                displayValue={params.topNSigma === -1 ? "Off" : undefined}
+                info="Top-N-Sigma sampling. -1 = disabled."
+              />
+              <ParamSlider
+                label="Smoothing Factor"
+                value={params.smoothingFactor ?? 0.0}
+                min={0}
+                max={1}
+                step={0.01}
+                onChange={set("smoothingFactor")}
+                displayValue={params.smoothingFactor === 0 ? "Off" : undefined}
+                info="Smoothing factor for probabilities."
+              />
+            </div>
+          </CollapsibleSection>
+        ) : null}
+
+        {/* ── Penalties ── */}
+        {!isExternalModel ? (
+          <CollapsibleSection label="Penalties">
+            <div className="flex flex-col gap-5 pt-1">
+              <ParamSlider
+                label="Frequency Penalty"
+                value={params.frequencyPenalty ?? 0.0}
+                min={0}
+                max={2}
+                step={0.1}
+                onChange={set("frequencyPenalty")}
+                displayValue={
+                  params.frequencyPenalty === 0 ? "Off" : undefined
+                }
+                info="Penalty for frequent tokens. Differs from presence penalty."
+              />
+              <ParamSlider
+                label="Repeat Last N"
+                value={params.repeatLastN ?? 64}
+                min={0}
+                max={2048}
+                step={1}
+                onChange={set("repeatLastN")}
+                info="Window size for repeat penalty. -1 = full context."
+              />
+              <SwitchRow
+                label="Penalize Newlines"
+                checked={params.penalizeNl ?? false}
+                onChange={set("penalizeNl")}
+                info="Apply repeat penalty to newline tokens."
+              />
+            </div>
+          </CollapsibleSection>
+        ) : null}
+
+        {/* ── Mirostat ── */}
+        {!isExternalModel ? (
+          <CollapsibleSection label="Mirostat">
+            <div className="flex flex-col gap-5 pt-1">
+              <SelectRow
+                label="Mode"
+                value={String(params.mirostat ?? 0)}
+                onChange={(v) => set("mirostat")(Number(v))}
+                options={[
+                  { value: "0", label: "Disabled" },
+                  { value: "1", label: "v1" },
+                  { value: "2", label: "v2" },
+                ]}
+                info="When enabled, top_k/top_p/typical_p are ignored."
+              />
+              <div
+                className={cn(
+                  "flex flex-col gap-5",
+                  (params.mirostat ?? 0) === 0 &&
+                    "opacity-50 pointer-events-none",
+                )}
+              >
+                <ParamSlider
+                  label="Tau"
+                  value={params.mirostatTau ?? 5.0}
+                  min={0}
+                  max={10}
+                  step={0.1}
+                  onChange={set("mirostatTau")}
+                  info="Target entropy. Higher = more random."
+                />
+                <ParamSlider
+                  label="Eta"
+                  value={params.mirostatEta ?? 0.1}
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  onChange={set("mirostatEta")}
+                  info="Learning rate. Higher = faster adaptation."
+                />
+              </div>
+            </div>
+          </CollapsibleSection>
+        ) : null}
+
+        {/* ── DRY Sampler ── */}
+        {!isExternalModel ? (
+          <CollapsibleSection label="DRY Sampler">
+            <div className="flex flex-col gap-5 pt-1">
+              <ParamSlider
+                label="Multiplier"
+                value={params.dryMultiplier ?? 0.0}
+                min={0}
+                max={5}
+                step={0.1}
+                onChange={set("dryMultiplier")}
+                displayValue={params.dryMultiplier === 0 ? "Off" : undefined}
+                info="Don't Repeat Yourself. 0 = disabled."
+              />
+              <div
+                className={cn(
+                  "flex flex-col gap-5",
+                  (params.dryMultiplier ?? 0) === 0 &&
+                    "opacity-50 pointer-events-none",
+                )}
+              >
+                <ParamSlider
+                  label="Base"
+                  value={params.dryBase ?? 1.75}
+                  min={1}
+                  max={3}
+                  step={0.05}
+                  onChange={set("dryBase")}
+                  info="Base for exponential penalty growth."
+                />
+                <ParamSlider
+                  label="Allowed Length"
+                  value={params.dryAllowedLength ?? 2}
+                  min={0}
+                  max={20}
+                  step={1}
+                  onChange={set("dryAllowedLength")}
+                  info="Allowed repetition length before penalty."
+                />
+                <TagInputRow
+                  label="Sequence Breakers"
+                  value={params.drySequenceBreakers}
+                  onChange={set("drySequenceBreakers")}
+                  parse={(s) => s}
+                  info="Tokens that reset DRY tracking."
+                  placeholder="Comma-separated breakers"
+                />
+                <ParamSlider
+                  label="Penalty Last N"
+                  value={params.dryPenaltyLastN ?? -1}
+                  min={-1}
+                  max={2048}
+                  step={1}
+                  onChange={set("dryPenaltyLastN")}
+                  info="Window for DRY penalty. -1 = full context."
+                />
+              </div>
+            </div>
+          </CollapsibleSection>
+        ) : null}
+
+        {/* ── XTC ── */}
+        {!isExternalModel ? (
+          <CollapsibleSection label="XTC">
+            <div className="flex flex-col gap-5 pt-1">
+              <ParamSlider
+                label="Probability"
+                value={params.xtcProbability ?? 0.0}
+                min={0}
+                max={1}
+                step={0.01}
+                onChange={set("xtcProbability")}
+                displayValue={params.xtcProbability === 0 ? "Off" : undefined}
+                info="Exclude Top Choices probability. 0 = disabled."
+              />
+              <div
+                className={cn(
+                  "flex flex-col gap-5",
+                  (params.xtcProbability ?? 0) === 0 &&
+                    "opacity-50 pointer-events-none",
+                )}
+              >
+                <ParamSlider
+                  label="Threshold"
+                  value={params.xtcThreshold ?? 0.1}
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  onChange={set("xtcThreshold")}
+                  info="Threshold above which XTC activates."
+                />
+              </div>
+            </div>
+          </CollapsibleSection>
+        ) : null}
+
+        {/* ── Dynamic Temperature ── */}
+        {!isExternalModel ? (
+          <CollapsibleSection label="Dynamic Temperature">
+            <div className="flex flex-col gap-5 pt-1">
+              <ParamSlider
+                label="Range"
+                value={params.dynatempRange ?? 0.0}
+                min={0}
+                max={5}
+                step={0.1}
+                onChange={set("dynatempRange")}
+                displayValue={params.dynatempRange === 0 ? "Off" : undefined}
+                info="Dynamic temperature range. 0 = disabled."
+              />
+              <div
+                className={cn(
+                  "flex flex-col gap-5",
+                  (params.dynatempRange ?? 0) === 0 &&
+                    "opacity-50 pointer-events-none",
+                )}
+              >
+                <ParamSlider
+                  label="Exponent"
+                  value={params.dynatempExponent ?? 1.0}
+                  min={0}
+                  max={2}
+                  step={0.1}
+                  onChange={set("dynatempExponent")}
+                  info="Exponent for dynamic temperature scaling."
+                />
+              </div>
+            </div>
+          </CollapsibleSection>
+        ) : null}
+
+        {/* ── Adaptive Sampling ── */}
+        {!isExternalModel ? (
+          <CollapsibleSection label="Adaptive Sampling">
+            <div className="flex flex-col gap-5 pt-1">
+              <ParamSlider
+                label="Target"
+                value={params.adaptiveTarget ?? -1}
+                min={-1}
+                max={10}
+                step={0.1}
+                onChange={set("adaptiveTarget")}
+                displayValue={params.adaptiveTarget === -1 ? "Off" : undefined}
+                info="Target entropy. -1 = disabled."
+              />
+              <div
+                className={cn(
+                  "flex flex-col gap-5",
+                  (params.adaptiveTarget ?? -1) < 0 &&
+                    "opacity-50 pointer-events-none",
+                )}
+              >
+                <ParamSlider
+                  label="Decay"
+                  value={params.adaptiveDecay ?? 0.9}
+                  min={0}
+                  max={1}
+                  step={0.01}
+                  onChange={set("adaptiveDecay")}
+                  info="Decay factor for adaptation."
+                />
+              </div>
+            </div>
+          </CollapsibleSection>
+        ) : null}
+
+        {/* ── Logit Bias ── */}
+        {!isExternalModel ? (
+          <CollapsibleSection label="Logit Bias">
+            <div className="flex flex-col gap-5 pt-1">
+              <JsonTextareaRow
+                label="Logit Bias"
+                value={params.logitBias}
+                onChange={set("logitBias")}
+                info='Ban or boost specific tokens. {"token_id": bias}.'
+                placeholder='{"123": -1.5, "456": 2.0}'
+              />
+            </div>
+          </CollapsibleSection>
+        ) : null}
+
+        {/* ── Sampler Order ── */}
+        {!isExternalModel ? (
+          <CollapsibleSection label="Sampler Order">
+            <div className="flex flex-col gap-5 pt-1">
+              <TagInputRow
+                label="Samplers"
+                value={params.samplers}
+                onChange={set("samplers")}
+                parse={(s) => s}
+                info='Order of sampler application. e.g. ["penalties","dry","top_k","top_p","min_p","temperature"]'
+                placeholder="penalties, dry, top_k, top_p, min_p, temperature"
+              />
+            </div>
+          </CollapsibleSection>
+        ) : null}
+
+        {/* ── Grammar ── */}
+        {!isExternalModel ? (
+          <CollapsibleSection label="Grammar">
+            <div className="flex flex-col gap-5 pt-1">
+              <TextareaRow
+                label="GBNF Grammar"
+                value={params.grammar ?? ""}
+                onChange={set("grammar")}
+                info="GBNF grammar string for structured output."
+                placeholder="root ::= ..."
+              />
+              <TextareaRow
+                label="JSON Schema"
+                value={params.jsonSchema ?? ""}
+                onChange={set("jsonSchema")}
+                info="JSON Schema for structured output. Alternative to grammar."
+                placeholder='{"type": "object", ...}'
+              />
+              <SwitchRow
+                label="Lazy Grammar"
+                checked={params.grammarLazy ?? false}
+                onChange={set("grammarLazy")}
+                info="Lazy grammar evaluation — only enforce at generation end."
+              />
+              <JsonTextareaRow
+                label="Grammar Triggers"
+                value={params.grammarTriggers}
+                onChange={set("grammarTriggers")}
+                info="Conditional grammar activation triggers."
+                placeholder="[]"
+              />
+              <TagInputRow
+                label="Preserved Tokens"
+                value={params.preservedTokens}
+                onChange={set("preservedTokens")}
+                parse={(s) => Number(s)}
+                info="Tokens exempt from grammar constraints."
+                placeholder="Comma-separated token IDs"
+              />
+            </div>
+          </CollapsibleSection>
+        ) : null}
+
+        {/* ── Logprobs ── */}
+        {!isExternalModel ? (
+          <CollapsibleSection label="Logprobs">
+            <div className="flex flex-col gap-5 pt-1">
+              <SwitchRow
+                label="Logprobs"
+                checked={params.logprobs ?? false}
+                onChange={set("logprobs")}
+                info="Return log probabilities of sampled tokens."
+              />
+              <ParamSlider
+                label="Top Logprobs"
+                value={params.topLogprobs ?? 0}
+                min={0}
+                max={20}
+                step={1}
+                onChange={set("topLogprobs")}
+                info="Number of top alternative tokens to return probabilities for."
+              />
+              <ParamSlider
+                label="N Probs"
+                value={params.nProbs ?? 0}
+                min={0}
+                max={100}
+                step={1}
+                onChange={set("nProbs")}
+                info="Number of tokens to return probabilities for. 0 = off."
+              />
+            </div>
+          </CollapsibleSection>
+        ) : null}
+
+        {/* ── Reasoning ── */}
+        {!isExternalModel ? (
+          <CollapsibleSection label="Reasoning">
+            <div className="flex flex-col gap-5 pt-1">
+              <SelectRow
+                label="Format"
+                value={params.reasoningFormat ?? "auto"}
+                onChange={set("reasoningFormat")}
+                options={[
+                  { value: "auto", label: "Auto" },
+                  { value: "none", label: "None" },
+                  { value: "deepthink", label: "Deepthink" },
+                ]}
+                info="Output format for thinking models."
+              />
+              <SwitchRow
+                label="Reasoning Control"
+                checked={params.reasoningControl ?? false}
+                onChange={set("reasoningControl")}
+                info="Enable reasoning control for thinking models."
+              />
+              <ParamSlider
+                label="Budget Tokens"
+                value={params.reasoningBudgetTokens ?? -1}
+                min={-1}
+                max={32768}
+                step={64}
+                onChange={set("reasoningBudgetTokens")}
+                displayValue={
+                  params.reasoningBudgetTokens === -1
+                    ? "Unlimited"
+                    : undefined
+                }
+                info="Max tokens for reasoning. -1 = unlimited."
+              />
+              <TextInputRow
+                label="Budget Start Tag"
+                value={params.reasoningBudgetStartTag ?? ""}
+                onChange={set("reasoningBudgetStartTag")}
+                info="Start tag for reasoning budget."
+                placeholder="<think>"
+              />
+              <TextInputRow
+                label="Budget End Tag"
+                value={params.reasoningBudgetEndTag ?? ""}
+                onChange={set("reasoningBudgetEndTag")}
+                info="End tag for reasoning budget."
+                placeholder="</think>"
+              />
+              <TextInputRow
+                label="Budget Message"
+                value={params.reasoningBudgetMessage ?? ""}
+                onChange={set("reasoningBudgetMessage")}
+                info="Message for reasoning budget."
+                placeholder=""
+              />
+            </div>
+          </CollapsibleSection>
+        ) : null}
+
+        {/* ── Generation Control ── */}
+        {!isExternalModel ? (
+          <CollapsibleSection label="Generation Control">
+            <div className="flex flex-col gap-5 pt-1">
+              <ParamSlider
+                label="N Keep"
+                value={params.nKeep ?? 0}
+                min={0}
+                max={32768}
+                step={1}
+                onChange={set("nKeep")}
+                info="Tokens to keep from prompt when shifting context."
+              />
+              <ParamSlider
+                label="N Discard"
+                value={params.nDiscard ?? 0}
+                min={0}
+                max={32768}
+                step={1}
+                onChange={set("nDiscard")}
+                info="Tokens to discard from KV cache after generation."
+              />
+              <ParamSlider
+                label="N Indent"
+                value={params.nIndent ?? 0}
+                min={0}
+                max={32}
+                step={1}
+                onChange={set("nIndent")}
+                info="Indentation spaces for continuation."
+              />
+              <ParamSlider
+                label="N Cache Reuse"
+                value={params.nCacheReuse ?? 0}
+                min={0}
+                max={4096}
+                step={1}
+                onChange={set("nCacheReuse")}
+                info="Cache reuse factor for prefix sharing."
+              />
+              <ParamSlider
+                label="Max Predict Time (ms)"
+                value={params.tMaxPredictMs ?? 0}
+                min={0}
+                max={600000}
+                step={100}
+                onChange={set("tMaxPredictMs")}
+                displayValue={params.tMaxPredictMs === 0 ? "Unlimited" : undefined}
+                info="Max generation time in ms. 0 = unlimited."
+              />
+              <ParamSlider
+                label="Min Keep"
+                value={params.minKeep ?? 0}
+                min={0}
+                max={1024}
+                step={1}
+                onChange={set("minKeep")}
+                info="Minimum tokens to keep before stopping."
+              />
+              <SwitchRow
+                label="Ignore EOS"
+                checked={params.ignoreEos ?? false}
+                onChange={set("ignoreEos")}
+                info="Ignore end-of-sequence token — keep generating until max_tokens."
+              />
+            </div>
+          </CollapsibleSection>
+        ) : null}
+
+        {/* ── Output Control ── */}
+        {!isExternalModel ? (
+          <CollapsibleSection label="Output Control">
+            <div className="flex flex-col gap-5 pt-1">
+              <SwitchRow
+                label="Return Tokens"
+                checked={params.returnTokens ?? false}
+                onChange={set("returnTokens")}
+                info="Return generated tokens in response."
+              />
+              <SwitchRow
+                label="Return Progress"
+                checked={params.returnProgress ?? false}
+                onChange={set("returnProgress")}
+                info="Return progress updates during generation."
+              />
+              <SwitchRow
+                label="Post-Sampling Probs"
+                checked={params.postSamplingProbs ?? false}
+                onChange={set("postSamplingProbs")}
+                info="Return post-sampling probabilities."
+              />
+              <SwitchRow
+                label="Timings Per Token"
+                checked={params.timingsPerToken ?? false}
+                onChange={set("timingsPerToken")}
+                info="Return per-token timing data."
+              />
+              <TagInputRow
+                label="Response Fields"
+                value={params.responseFields}
+                onChange={set("responseFields")}
+                parse={(s) => s}
+                info="Custom fields to include in response."
+                placeholder="Comma-separated field names"
+              />
+              <SwitchRow
+                label="Backend Sampling"
+                checked={params.backendSampling ?? false}
+                onChange={set("backendSampling")}
+                info="Perform sampling on backend instead of client."
+              />
+            </div>
+          </CollapsibleSection>
+        ) : null}
+
         {!isExternalModel ? (
           <CollapsibleSection label="Tools">
             <div className="flex flex-col gap-5 pt-1">
@@ -2251,5 +2854,288 @@ function ChatTemplateFields() {
         </DialogContent>
       </Dialog>
     </>
+  );
+}
+
+// ── Advanced llama.cpp parameter helpers ──────────────────────────────────
+// Presentational rows used by the 14 advanced CollapsibleSections below the
+// Sampling block. Each takes a value + onChange so they compose with the
+// `set(key)` curried setter inside ChatSettingsPanel without touching the
+// store directly.
+
+function TagInputRow<T extends string | number>({
+  label,
+  value,
+  onChange,
+  info,
+  placeholder,
+  disabled,
+  parse,
+}: {
+  label: string;
+  value: T[] | null | undefined;
+  onChange: (v: T[]) => void;
+  info?: ReactNode;
+  placeholder?: string;
+  disabled?: boolean;
+  parse: (s: string) => T;
+}) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const joined = value?.join(", ") ?? "";
+  const displayed = draft ?? joined;
+  return (
+    <div className={cn("space-y-2", disabled && "opacity-50")}>
+      <div className="flex min-w-0 items-center gap-1.5">
+        <span className="min-w-0 text-[13px] font-medium leading-[1.25] tracking-nav text-nav-fg">
+          {label}
+        </span>
+        {info && <InfoHint>{info}</InfoHint>}
+      </div>
+      <input
+        type="text"
+        value={displayed}
+        placeholder={placeholder ?? "Comma-separated values"}
+        disabled={disabled}
+        onFocus={(e) => {
+          setDraft(joined);
+          requestAnimationFrame(() => e.target.select());
+        }}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={() => {
+          if (draft != null) {
+            const parts = draft
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean);
+            onChange(parts.map(parse));
+            setDraft(null);
+          }
+        }}
+        className="h-8 w-full rounded-lg border-transparent bg-black/[0.04] dark:bg-white/[0.05] hover:bg-black/[0.06] dark:hover:bg-white/[0.1] px-3 py-0 text-[13px] font-medium text-nav-fg outline-none focus-visible:ring-0"
+      />
+    </div>
+  );
+}
+
+function JsonTextareaRow<T>({
+  label,
+  value,
+  onChange,
+  info,
+  placeholder,
+  disabled,
+}: {
+  label: string;
+  value: T | null | undefined;
+  onChange: (v: T | null) => void;
+  info?: ReactNode;
+  placeholder?: string;
+  disabled?: boolean;
+}) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const serialized = useMemo(() => {
+    if (value == null) return "";
+    try {
+      return JSON.stringify(value, null, 2);
+    } catch {
+      return "";
+    }
+  }, [value]);
+  const displayed = draft ?? serialized;
+  return (
+    <div className={cn("space-y-2", disabled && "opacity-50")}>
+      <div className="flex min-w-0 items-center gap-1.5">
+        <span className="min-w-0 text-[13px] font-medium leading-[1.25] tracking-nav text-nav-fg">
+          {label}
+        </span>
+        {info && <InfoHint>{info}</InfoHint>}
+      </div>
+      <Textarea
+        value={displayed}
+        placeholder={placeholder ?? "JSON"}
+        disabled={disabled}
+        onChange={(e) => {
+          setDraft(e.target.value);
+          setError(null);
+        }}
+        onBlur={() => {
+          if (draft != null) {
+            const trimmed = draft.trim();
+            if (trimmed === "") {
+              onChange(null);
+              setDraft(null);
+              setError(null);
+              return;
+            }
+            try {
+              const parsed = JSON.parse(trimmed) as T;
+              onChange(parsed);
+              setDraft(null);
+              setError(null);
+            } catch {
+              setError("Invalid JSON");
+            }
+          }
+        }}
+        className="min-h-[80px] font-mono text-xs corner-squircle focus-visible:ring-0"
+        rows={4}
+      />
+      {error && <p className="text-[11px] text-destructive">{error}</p>}
+    </div>
+  );
+}
+
+function TextInputRow({
+  label,
+  value,
+  onChange,
+  info,
+  placeholder,
+  disabled,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  info?: ReactNode;
+  placeholder?: string;
+  disabled?: boolean;
+}) {
+  return (
+    <div className={cn("space-y-2", disabled && "opacity-50")}>
+      <div className="flex min-w-0 items-center gap-1.5">
+        <span className="min-w-0 text-[13px] font-medium leading-[1.25] tracking-nav text-nav-fg">
+          {label}
+        </span>
+        {info && <InfoHint>{info}</InfoHint>}
+      </div>
+      <input
+        type="text"
+        value={value}
+        placeholder={placeholder}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-8 w-full rounded-lg border-transparent bg-black/[0.04] dark:bg-white/[0.05] hover:bg-black/[0.06] dark:hover:bg-white/[0.1] px-3 py-0 text-[13px] font-medium text-nav-fg outline-none focus-visible:ring-0"
+      />
+    </div>
+  );
+}
+
+function TextareaRow({
+  label,
+  value,
+  onChange,
+  info,
+  placeholder,
+  disabled,
+  rows = 4,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  info?: ReactNode;
+  placeholder?: string;
+  disabled?: boolean;
+  rows?: number;
+}) {
+  return (
+    <div className={cn("space-y-2", disabled && "opacity-50")}>
+      <div className="flex min-w-0 items-center gap-1.5">
+        <span className="min-w-0 text-[13px] font-medium leading-[1.25] tracking-nav text-nav-fg">
+          {label}
+        </span>
+        {info && <InfoHint>{info}</InfoHint>}
+      </div>
+      <Textarea
+        value={value}
+        placeholder={placeholder}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.value)}
+        className="min-h-[80px] font-mono text-xs corner-squircle focus-visible:ring-0"
+        rows={rows}
+      />
+    </div>
+  );
+}
+
+function SwitchRow({
+  label,
+  checked,
+  onChange,
+  info,
+  disabled,
+}: {
+  label: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  info?: ReactNode;
+  disabled?: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <div className="flex min-w-0 items-center gap-1.5">
+        <span className="min-w-0 text-[13px] font-medium leading-[1.25] tracking-nav text-nav-fg">
+          {label}
+        </span>
+        {info && <InfoHint>{info}</InfoHint>}
+      </div>
+      <Switch
+        className="panel-switch shrink-0"
+        checked={checked}
+        onCheckedChange={onChange}
+        disabled={disabled}
+      />
+    </div>
+  );
+}
+
+function SelectRow({
+  label,
+  value,
+  onChange,
+  options,
+  info,
+  disabled,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; label: string }[];
+  info?: ReactNode;
+  disabled?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex items-center justify-between gap-3",
+        disabled && "opacity-50",
+      )}
+    >
+      <div className="flex min-w-0 items-center gap-1.5">
+        <span className="min-w-0 text-[13px] font-medium leading-[1.25] tracking-nav text-nav-fg">
+          {label}
+        </span>
+        {info && <InfoHint>{info}</InfoHint>}
+      </div>
+      <div className="flex shrink-0 items-center gap-1.5">
+        <Select value={value} onValueChange={onChange}>
+          <SelectTrigger
+            animateRadius={false}
+            icon={ChevronDownStandardIcon}
+            iconClassName="size-3.5"
+            className="grid h-7 w-[124px] min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-1 rounded-full border-transparent bg-black/[0.04] dark:bg-white/[0.05] hover:bg-black/[0.06] dark:hover:bg-white/[0.1] pl-3 pr-2 py-0 text-[13px]! font-medium text-nav-fg focus-visible:ring-0 focus-visible:border-transparent [&_[data-slot=select-value]]:min-w-0 [&_[data-slot=select-value]]:truncate [&>svg]:shrink-0"
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent className="menu-soft-surface ring-0 border-0 rounded-lg">
+            {options.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
   );
 }

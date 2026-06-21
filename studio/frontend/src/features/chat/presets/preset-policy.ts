@@ -23,6 +23,53 @@ export type PresetOwnedParams = Pick<
   | "presencePenalty"
   | "maxTokens"
   | "systemPrompt"
+  // Tier 1
+  | "seed"
+  | "stop"
+  // Tier 2
+  | "frequencyPenalty"
+  // Tier 3 — Advanced sampling
+  | "typicalP"
+  | "tfsZ"
+  | "topA"
+  | "topNSigma"
+  | "smoothingFactor"
+  // Mirostat
+  | "mirostat"
+  | "mirostatTau"
+  | "mirostatEta"
+  // XTC
+  | "xtcProbability"
+  | "xtcThreshold"
+  // DRY
+  | "dryMultiplier"
+  | "dryBase"
+  | "dryAllowedLength"
+  | "drySequenceBreakers"
+  | "dryPenaltyLastN"
+  // Penalties
+  | "repeatLastN"
+  | "penalizeNl"
+  // Dynamic temperature
+  | "dynatempRange"
+  | "dynatempExponent"
+  // Adaptive
+  | "adaptiveTarget"
+  | "adaptiveDecay"
+  // Logit bias
+  | "logitBias"
+  // Sampler order
+  | "samplers"
+  // Grammar
+  | "grammar"
+  | "jsonSchema"
+  // Logprobs
+  | "logprobs"
+  | "topLogprobs"
+  | "nProbs"
+  // Generation control
+  | "ignoreEos"
+  | "minKeep"
 >;
 
 export const BUILTIN_PRESETS: Preset[] = [
@@ -105,6 +152,42 @@ export function getPresetOwnedParams(
     presencePenalty: params.presencePenalty,
     maxTokens: params.maxTokens,
     systemPrompt: params.systemPrompt,
+    // Tier 1
+    seed: params.seed,
+    stop: params.stop,
+    // Tier 2
+    frequencyPenalty: params.frequencyPenalty,
+    // Tier 3 — Advanced sampling
+    typicalP: params.typicalP,
+    tfsZ: params.tfsZ,
+    topA: params.topA,
+    topNSigma: params.topNSigma,
+    smoothingFactor: params.smoothingFactor,
+    mirostat: params.mirostat,
+    mirostatTau: params.mirostatTau,
+    mirostatEta: params.mirostatEta,
+    xtcProbability: params.xtcProbability,
+    xtcThreshold: params.xtcThreshold,
+    dryMultiplier: params.dryMultiplier,
+    dryBase: params.dryBase,
+    dryAllowedLength: params.dryAllowedLength,
+    drySequenceBreakers: params.drySequenceBreakers,
+    dryPenaltyLastN: params.dryPenaltyLastN,
+    repeatLastN: params.repeatLastN,
+    penalizeNl: params.penalizeNl,
+    dynatempRange: params.dynatempRange,
+    dynatempExponent: params.dynatempExponent,
+    adaptiveTarget: params.adaptiveTarget,
+    adaptiveDecay: params.adaptiveDecay,
+    logitBias: params.logitBias,
+    samplers: params.samplers,
+    grammar: params.grammar,
+    jsonSchema: params.jsonSchema,
+    logprobs: params.logprobs,
+    topLogprobs: params.topLogprobs,
+    nProbs: params.nProbs,
+    ignoreEos: params.ignoreEos,
+    minKeep: params.minKeep,
   };
 }
 
@@ -122,7 +205,42 @@ export function isSamePresetConfig(
     left.repetitionPenalty === right.repetitionPenalty &&
     left.presencePenalty === right.presencePenalty &&
     left.maxTokens === right.maxTokens &&
-    left.systemPrompt === right.systemPrompt
+    left.systemPrompt === right.systemPrompt &&
+    left.seed === right.seed &&
+    left.frequencyPenalty === right.frequencyPenalty &&
+    left.typicalP === right.typicalP &&
+    left.tfsZ === right.tfsZ &&
+    left.topA === right.topA &&
+    left.topNSigma === right.topNSigma &&
+    left.smoothingFactor === right.smoothingFactor &&
+    left.mirostat === right.mirostat &&
+    left.mirostatTau === right.mirostatTau &&
+    left.mirostatEta === right.mirostatEta &&
+    left.xtcProbability === right.xtcProbability &&
+    left.xtcThreshold === right.xtcThreshold &&
+    left.dryMultiplier === right.dryMultiplier &&
+    left.dryBase === right.dryBase &&
+    left.dryAllowedLength === right.dryAllowedLength &&
+    left.dryPenaltyLastN === right.dryPenaltyLastN &&
+    left.repeatLastN === right.repeatLastN &&
+    left.penalizeNl === right.penalizeNl &&
+    left.dynatempRange === right.dynatempRange &&
+    left.dynatempExponent === right.dynatempExponent &&
+    left.adaptiveTarget === right.adaptiveTarget &&
+    left.adaptiveDecay === right.adaptiveDecay &&
+    left.logprobs === right.logprobs &&
+    left.topLogprobs === right.topLogprobs &&
+    left.nProbs === right.nProbs &&
+    left.ignoreEos === right.ignoreEos &&
+    left.minKeep === right.minKeep &&
+    // Reference-equal complex fields — shallow compare by JSON serialization
+    // so two presets with identical array/record values are seen as the same.
+    JSON.stringify(left.stop) === JSON.stringify(right.stop) &&
+    JSON.stringify(left.drySequenceBreakers) === JSON.stringify(right.drySequenceBreakers) &&
+    JSON.stringify(left.logitBias) === JSON.stringify(right.logitBias) &&
+    JSON.stringify(left.samplers) === JSON.stringify(right.samplers) &&
+    left.grammar === right.grammar &&
+    left.jsonSchema === right.jsonSchema
   );
 }
 
