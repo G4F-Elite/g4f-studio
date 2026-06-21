@@ -1197,6 +1197,9 @@ async function autoLoadSmallestModel(): Promise<{
   const hfToken = store.hfToken || null;
   const trustRemoteCode = store.params.trustRemoteCode ?? false;
   const specSettings = resolveSpeculativeSettingsForLoad();
+  /** When auto-offload is on (default), let the backend decide GPU layers
+   *  automatically (pass undefined). When off, pass the explicit slider value. */
+  const nGpuLayers = store.autoOffload ? undefined : (store.gpuLayers ?? undefined);
   const toastId = toast("Loading a model…", {
     description: "Auto-selecting the smallest downloaded model.",
     duration: 5000,
@@ -1268,6 +1271,7 @@ async function autoLoadSmallestModel(): Promise<{
               trust_remote_code: trustRemoteCode,
               speculative_type: specSettings.speculativeType,
               spec_draft_n_max: specSettings.specDraftNMax,
+              n_gpu_layers: specSettings.nGpuLayers,
             });
             saveSpeculativeType(specSettings.speculativeType);
             useChatRuntimeStore
@@ -1314,6 +1318,8 @@ async function autoLoadSmallestModel(): Promise<{
               loadedKvCacheDtype: loadResp.cache_type_kv ?? null,
               tensorParallel: loadResp.tensor_parallel ?? false,
               loadedTensorParallel: loadResp.tensor_parallel ?? false,
+              gpuLayers: loadResp.n_gpu_layers ?? null,
+              loadedGpuLayers: loadResp.n_gpu_layers ?? null,
               defaultChatTemplate: loadResp.chat_template ?? null,
               chatTemplateOverride: null,
               loadedChatTemplateOverride: null,
@@ -1361,6 +1367,7 @@ async function autoLoadSmallestModel(): Promise<{
             trust_remote_code: trustRemoteCode,
             speculative_type: specSettings.speculativeType,
             spec_draft_n_max: specSettings.specDraftNMax,
+            n_gpu_layers: nGpuLayers,
           });
           saveSpeculativeType(specSettings.speculativeType);
           useChatRuntimeStore.getState().setCheckpoint(repo.repo_id);
@@ -1379,6 +1386,8 @@ async function autoLoadSmallestModel(): Promise<{
             supportsTools: sfLoadResp.supports_tools ?? false,
             // Parity with the GGUF branch above.
             ...resolveToolsEnabledOnLoad(sfLoadResp.supports_tools ?? false),
+            gpuLayers: sfLoadResp.n_gpu_layers ?? null,
+            loadedGpuLayers: sfLoadResp.n_gpu_layers ?? null,
             defaultChatTemplate: sfLoadResp.chat_template ?? null,
             chatTemplateOverride: null,
             loadedChatTemplateOverride: null,
@@ -1447,6 +1456,7 @@ async function autoLoadSmallestModel(): Promise<{
         trust_remote_code: trustRemoteCode,
         speculative_type: specSettings.speculativeType,
         spec_draft_n_max: specSettings.specDraftNMax,
+        n_gpu_layers: nGpuLayers,
       });
       saveSpeculativeType(specSettings.speculativeType);
       useChatRuntimeStore
@@ -1485,6 +1495,8 @@ async function autoLoadSmallestModel(): Promise<{
         loadedKvCacheDtype: loadResp.cache_type_kv ?? null,
         tensorParallel: loadResp.tensor_parallel ?? false,
         loadedTensorParallel: loadResp.tensor_parallel ?? false,
+        gpuLayers: loadResp.n_gpu_layers ?? null,
+        loadedGpuLayers: loadResp.n_gpu_layers ?? null,
         defaultChatTemplate: loadResp.chat_template ?? null,
         chatTemplateOverride: null,
         loadedIsMultimodal: isMultimodalResponse(loadResp),

@@ -1842,6 +1842,9 @@ def _request_matches_loaded_settings(
     if backend_mode in ("mtp", "mtp+ngram") and request.spec_draft_n_max is not None:
         if int(request.spec_draft_n_max) != (llama_backend.spec_draft_n_max or 0):
             return False
+    # Explicit NGL change requires a reload. None = "no opinion" (auto-fit).
+    if request.n_gpu_layers != llama_backend.n_gpu_layers:
+        return False
     _effective_cto = (
         effective_chat_template_override
         if effective_chat_template_override is not None
@@ -2258,6 +2261,10 @@ async def load_model(
                     speculative_type = llama_backend.requested_spec_mode,
                     spec_draft_n_max = llama_backend.spec_draft_n_max,
                     tensor_parallel = llama_backend.tensor_parallel,
+                    n_gpu_layers = llama_backend.n_gpu_layers,
+                    gpu_layers_offloaded = llama_backend.gpu_layers_offloaded,
+                    gpu_layers_total = llama_backend.gpu_layers_total,
+                    fully_gpu_offloaded = llama_backend.fully_gpu_offloaded,
                 )
         else:
             if (
@@ -2458,6 +2465,7 @@ async def load_model(
                 cache_type_kv = request.cache_type_kv,
                 speculative_type = request.speculative_type,
                 spec_draft_n_max = request.spec_draft_n_max,
+                n_gpu_layers = request.n_gpu_layers,
                 n_parallel = _n_parallel,
                 extra_args = extra_llama_args,
             )
@@ -2571,6 +2579,10 @@ async def load_model(
                 speculative_type = llama_backend.requested_spec_mode,
                 spec_draft_n_max = llama_backend.spec_draft_n_max,
                 tensor_parallel = llama_backend.tensor_parallel,
+                n_gpu_layers = llama_backend.n_gpu_layers,
+                gpu_layers_offloaded = llama_backend.gpu_layers_offloaded,
+                gpu_layers_total = llama_backend.gpu_layers_total,
+                fully_gpu_offloaded = llama_backend.fully_gpu_offloaded,
             )
 
         # ── Standard path: load via Unsloth/transformers ──────────
@@ -3300,6 +3312,10 @@ async def get_status(current_subject: str = Depends(get_current_subject)):
                 speculative_type = llama_backend.requested_spec_mode,
                 spec_draft_n_max = llama_backend.spec_draft_n_max,
                 tensor_parallel = llama_backend.tensor_parallel,
+                n_gpu_layers = llama_backend.n_gpu_layers,
+                gpu_layers_offloaded = llama_backend.gpu_layers_offloaded,
+                gpu_layers_total = llama_backend.gpu_layers_total,
+                fully_gpu_offloaded = llama_backend.fully_gpu_offloaded,
                 llama_cpp_supports_mtp = _supports_mtp,
                 spec_fallback_reason = llama_backend.spec_fallback_reason,
                 llama_cpp_prebuilt_stale = _stale,

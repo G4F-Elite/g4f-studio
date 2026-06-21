@@ -596,6 +596,8 @@ export function useChatModelRuntime() {
               speculativeType,
               specDraftNMax,
               tensorParallel,
+              autoOffload,
+              gpuLayers,
               activePresetSource,
               activeGgufVariant,
             } = useChatRuntimeStore.getState();
@@ -627,6 +629,7 @@ export function useChatModelRuntime() {
               speculative_type: speculativeType,
               spec_draft_n_max: specDraftNMax,
               tensor_parallel: tensorParallel,
+              n_gpu_layers: autoOffload ? undefined : (gpuLayers ?? undefined),
             });
 
             // If cancelled while loading, don't update UI to show
@@ -726,6 +729,8 @@ export function useChatModelRuntime() {
               loadedKvCacheDtype: loadedKv,
               tensorParallel: loadedTp,
               loadedTensorParallel: loadedTp,
+              gpuLayers: loadResponse.n_gpu_layers ?? null,
+              loadedGpuLayers: loadResponse.n_gpu_layers ?? null,
               speculativeType: loadedSpec,
               loadedSpeculativeType: loadedSpec,
               specDraftNMax: loadResponse.spec_draft_n_max ?? null,
@@ -807,6 +812,7 @@ export function useChatModelRuntime() {
                   // Restore the previous model in the split mode it was running,
                   // not the default layer split.
                   tensor_parallel: stateBeforeUnload.loadedTensorParallel ?? false,
+                  n_gpu_layers: stateBeforeUnload.loadedGpuLayers ?? undefined,
                 });
                 useChatRuntimeStore.setState({
                   activeNativePathToken: previousActiveNativePathToken ?? null,

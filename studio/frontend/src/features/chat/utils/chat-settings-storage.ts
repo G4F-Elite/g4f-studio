@@ -4,6 +4,7 @@
 import {
   getChatSettings,
   saveChatSettingsPatch,
+  type ModelLoadingSettings,
   type PersistedChatPreset,
   type PersistedChatSettings,
   type PersistedInferenceParams,
@@ -205,6 +206,54 @@ function sanitizeInt(value: unknown, min: number): number | undefined {
     : undefined;
 }
 
+function sanitizeModelLoading(
+  value: unknown,
+): ModelLoadingSettings | undefined {
+  if (!isRecord(value)) return undefined;
+
+  const kvCacheDtype =
+    typeof value.kvCacheDtype === "string" ? value.kvCacheDtype : null;
+  const tensorParallel =
+    typeof value.tensorParallel === "boolean" ? value.tensorParallel : false;
+  const speculativeType =
+    typeof value.speculativeType === "string" ? value.speculativeType : null;
+  const specDraftNMax =
+    typeof value.specDraftNMax === "number" &&
+    Number.isFinite(value.specDraftNMax) &&
+    value.specDraftNMax > 0
+      ? value.specDraftNMax
+      : null;
+  const customContextLength =
+    typeof value.customContextLength === "number" &&
+    Number.isFinite(value.customContextLength) &&
+    value.customContextLength > 0
+      ? value.customContextLength
+      : null;
+  const chatTemplateOverride =
+    typeof value.chatTemplateOverride === "string"
+      ? value.chatTemplateOverride
+      : null;
+  const gpuLayers =
+    typeof value.gpuLayers === "number" &&
+    Number.isInteger(value.gpuLayers) &&
+    value.gpuLayers >= -1
+      ? value.gpuLayers
+      : null;
+  const autoOffload =
+    typeof value.autoOffload === "boolean" ? value.autoOffload : true;
+
+  return {
+    kvCacheDtype,
+    tensorParallel,
+    speculativeType,
+    specDraftNMax,
+    customContextLength,
+    chatTemplateOverride,
+    gpuLayers,
+    autoOffload,
+  };
+}
+
 function sanitizeChatSettings(value: unknown): PersistedChatSettings {
   if (!isRecord(value)) return {};
 
@@ -246,6 +295,9 @@ function sanitizeChatSettings(value: unknown): PersistedChatSettings {
     settings.maxToolCallsPerMessage = maxToolCallsPerMessage;
   }
   if (toolCallTimeout !== undefined) settings.toolCallTimeout = toolCallTimeout;
+
+  const modelLoading = sanitizeModelLoading(value.modelLoading);
+  if (modelLoading) settings.modelLoading = modelLoading;
 
   return settings;
 }
@@ -303,7 +355,8 @@ export function isEmptyChatSettings(settings: PersistedChatSettings): boolean {
     settings.allowArtifactNetworkAccess === undefined &&
     settings.autoHealToolCalls === undefined &&
     settings.maxToolCallsPerMessage === undefined &&
-    settings.toolCallTimeout === undefined
+    settings.toolCallTimeout === undefined &&
+    settings.modelLoading === undefined
   );
 }
 

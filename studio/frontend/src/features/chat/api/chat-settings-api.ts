@@ -15,6 +15,26 @@ export interface PersistedChatPreset {
   params: PersistedInferenceParams;
 }
 
+/**
+ * Persisted model-loading settings: knobs shown in the Settings sheet before
+ * loading a local model (KV cache dtype, tensor parallelism, speculative
+ * decoding, context length override, chat template override, and GPU offload).
+ * Nullable numeric fields use `null` to mean "auto/not set" so the backend
+ * can apply per-model defaults.
+ */
+export interface ModelLoadingSettings {
+  kvCacheDtype: string | null;
+  tensorParallel: boolean;
+  speculativeType: string | null;
+  specDraftNMax: number | null;
+  customContextLength: number | null;
+  chatTemplateOverride: string | null;
+  /** Number of layers to offload to GPU. null = auto, -1 = all GPU, 0 = all CPU. */
+  gpuLayers: number | null;
+  /** When true, the backend chooses GPU offload automatically (n_gpu_layers omitted). */
+  autoOffload: boolean;
+}
+
 export interface PersistedChatSettings {
   inferenceParams?: PersistedInferenceParams;
   customPresets?: PersistedChatPreset[];
@@ -28,6 +48,7 @@ export interface PersistedChatSettings {
   autoHealToolCalls?: boolean;
   maxToolCallsPerMessage?: number;
   toolCallTimeout?: number;
+  modelLoading?: ModelLoadingSettings;
 }
 
 interface ChatSettingsResponse {

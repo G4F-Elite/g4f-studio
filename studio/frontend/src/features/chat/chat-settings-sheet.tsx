@@ -57,6 +57,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { InfoHint } from "@/components/ui/info-hint";
 import { Tooltip, TooltipContent } from "@/components/ui/tooltip";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useHardwareInfo, refreshHardwareInfo } from "@/hooks/use-hardware-info";
 import { useLlamaUpdateCheck } from "@/hooks/use-llama-update-check";
 import { cn } from "@/lib/utils";
 import {
@@ -66,7 +67,7 @@ import {
 } from "@hugeicons/core-free-icons";
 import { ChevronDownStandardIcon } from "@/lib/chevron-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { ChevronDown, ExternalLink } from "lucide-react";
+import { ChevronDown, ExternalLink, RefreshCw } from "lucide-react";
 import { Tooltip as TooltipPrimitive } from "radix-ui";
 import { Fragment, type ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -102,6 +103,8 @@ import {
   useChatRuntimeStore,
 } from "./stores/chat-runtime-store";
 import { RetrievalSettingsSection } from "@/features/rag/components/retrieval-settings-section";
+import { getInferenceStatus } from "./api/chat-api";
+import type { InferenceStatusResponse } from "./types/api";
 import type { InferenceParams } from "./types/runtime";
 
 export { defaultInferenceParams, type Preset } from "./presets/preset-policy";
@@ -546,6 +549,12 @@ export function ChatSettingsPanel({
   const loadedTensorParallel = useChatRuntimeStore(
     (s) => s.loadedTensorParallel,
   );
+  const gpuLayers = useChatRuntimeStore((s) => s.gpuLayers);
+  const setGpuLayers = useChatRuntimeStore((s) => s.setGpuLayers);
+  const loadedGpuLayers = useChatRuntimeStore((s) => s.loadedGpuLayers);
+  const autoOffload = useChatRuntimeStore((s) => s.autoOffload);
+  const setAutoOffload = useChatRuntimeStore((s) => s.setAutoOffload);
+  const loadedAutoOffload = useChatRuntimeStore((s) => s.loadedAutoOffload);
   const chatTemplateOverride = useChatRuntimeStore(
     (s) => s.chatTemplateOverride,
   );
@@ -590,11 +599,92 @@ export function ChatSettingsPanel({
   const specDirty = speculativeType !== loadedSpeculativeType;
   const specDraftDirty = specDraftNMax !== loadedSpecDraftNMax;
   const tpDirty = tensorParallel !== (loadedTensorParallel ?? false);
+  const gpuOffloadDirty =
+    gpuLayers !== loadedGpuLayers || autoOffload !== loadedAutoOffload;
   // A saved chat-template override is a reload-time setting too, so surface
   // Apply for a template-only edit (otherwise it could never be applied).
   const templateDirty = chatTemplateOverride !== loadedChatTemplateOverride;
   const modelSettingsDirty =
-    kvDirty || ctxDirty || specDirty || specDraftDirty || tpDirty || templateDirty;
+    kvDirty || ctxDirty || specDirty || specDraftDirty || tpDirty || gpuOffloadDirty || templateDirty;
+
+  // --- GPU Offload: hardware info + inference status for layer counts ---
+  const hardwareInfo = useHardwareInfo();
+  const [inferenceStatus, setInferenceStatus] = useState<InferenceStatusResponse | null>(null);
+  const [refreshingHardware, setRefreshingHardware] = useState(false);
+  const hasGpu = hardwareInfo.gpuName != null && (hardwareInfo.vramTotalGb ?? 0) > 0;
+  const gpuLayersTotal = inferenceStatus?.gpu_layers_total ?? null;
+  const gpuLayersOffloaded = inferenceStatus?.gpu_layers_offloaded ?? null;
+  const fullyGpuOffloaded = inferenceStatus?.fully_gpu_offloaded ?? null;
+  const modelLoaded = Boolean(params.checkpoint);
+
+  // Fetch inference status to get layer counts when a model is loaded.
+  useEffect(() => {
+    if (!modelLoaded || !isGguf) {
+      setInferenceStatus(null);
+      return;
+    }
+    let cancelled = false;
+    getInferenceStatus()
+      .then((status) => {
+        if (!cancelled) setInferenceStatus(status);
+      })
+      .catch(() => {
+        // Ignore: status is supplementary, not critical.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [modelLoaded, isGguf]);
+
+  const handleRefreshHardware = useCallback(async () => {
+    setRefreshingHardware(true);
+    try {
+      await refreshHardwareInfo();
+      if (modelLoaded && isGguf) {
+        // Re-fetch in case the model reloaded; failures are non-fatal.
+        getInferenceStatus()
+          .then(setInferenceStatus)
+          .catch(() => undefined);
+      }
+    } finally {
+      setRefreshingHardware(false);
+    }
+  }, [modelLoaded, isGguf]);
+
+  // Slider max: use total layers from status, fall back to 100.
+  const gpuSliderMax = gpuLayersTotal != null && gpuLayersTotal > 0 ? gpuLayersTotal : 100;
+  // Effective slider value: when autoOffload is on, the slider is hidden.
+  // When manual, gpuLayers is the user's choice. -1 means "all GPU".
+  const effectiveGpuLayers = gpuLayers ?? 0;
+  const isAllGpu = effectiveGpuLayers === -1 || (gpuLayersTotal != null && effectiveGpuLayers >= gpuLayersTotal);
+  const isAllCpu = effectiveGpuLayers === 0;
+
+  // The slider "all" sentinel (-1) maps to the max so the thumb lands on top.
+  const setGpuLayersFromSlider = (v: number) => {
+    setGpuLayers(v >= gpuSliderMax ? -1 : v);
+  };
+
+  // Badge that summarises how the loaded model fits in VRAM. Only meaningful
+  // once a GGUF is loaded and we have a live status payload.
+  const gpuFitBadge = (() => {
+    if (!hasGpu || !modelLoaded || inferenceStatus == null) {
+      return null;
+    }
+    if (fullyGpuOffloaded === true) {
+      return {
+        className: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+        label: "Full GPU",
+      };
+    }
+    if (fullyGpuOffloaded === false) {
+      return {
+        className: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
+        label: "Partial",
+      };
+    }
+    return { className: "bg-muted text-muted-foreground", label: "—" };
+  })();
+
   const [presetNameInput, setPresetNameInput] = useState(activePreset);
   const [systemPromptEditorOpen, setSystemPromptEditorOpen] = useState(false);
   const [systemPromptDraft, setSystemPromptDraft] = useState("");
@@ -1097,6 +1187,175 @@ export function ChatSettingsPanel({
                     onCheckedChange={setTensorParallel}
                     data-test-id="tensor-parallel-switch"
                   />
+                </div>
+                {/* GPU Offload section */}
+                <div className="space-y-3.5">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-1.5">
+                      <span className="min-w-0 text-[13px] font-medium leading-[1.25] tracking-nav text-nav-fg">
+                        GPU Offload
+                      </span>
+                      <InfoHint>
+                        Control how many model layers run on GPU vs CPU. Auto
+                        lets the backend decide. Manual gives you control over
+                        the layer count.
+                      </InfoHint>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <span className="text-[12px] text-muted-foreground">
+                        {autoOffload ? "Auto" : "Manual"}
+                      </span>
+                      <Switch
+                        className="panel-switch shrink-0"
+                        checked={!autoOffload}
+                        onCheckedChange={(manual) => {
+                          setAutoOffload(!manual);
+                          if (!manual) {
+                            // Switching to auto: clear manual value.
+                            setGpuLayers(null);
+                          } else {
+                            // Switching to manual: default to all GPU (-1).
+                            setGpuLayers(-1);
+                          }
+                        }}
+                        disabled={!hasGpu}
+                        data-test-id="gpu-offload-manual-switch"
+                      />
+                    </div>
+                  </div>
+                  {/* VRAM info row */}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex min-w-0 items-center gap-1.5 text-[12px] text-muted-foreground">
+                      {hasGpu ? (
+                        <span className="truncate">
+                          VRAM:{" "}
+                          {hardwareInfo.vramFreeGb != null
+                            ? `${hardwareInfo.vramFreeGb.toFixed(1)} GB free`
+                            : "—"}{" "}
+                          /{" "}
+                          {hardwareInfo.vramTotalGb != null
+                            ? `${hardwareInfo.vramTotalGb.toFixed(1)} GB total`
+                            : "—"}
+                        </span>
+                      ) : (
+                        <span>No GPU detected</span>
+                      )}
+                      {gpuFitBadge && (
+                        <span
+                          className={cn(
+                            "inline-flex shrink-0 items-center rounded-full px-1.5 py-0.5 text-[11px] font-medium",
+                            gpuFitBadge.className,
+                          )}
+                        >
+                          {gpuFitBadge.label}
+                        </span>
+                      )}
+                    </div>
+                    <TooltipPrimitive.Provider>
+                      <TooltipPrimitive.Root>
+                        <TooltipPrimitive.Trigger asChild>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="size-6 shrink-0 text-muted-foreground hover:text-nav-fg"
+                            onClick={handleRefreshHardware}
+                            disabled={refreshingHardware}
+                            data-test-id="gpu-refresh-button"
+                          >
+                            <RefreshCw
+                              className={cn(
+                                "size-3.5",
+                                refreshingHardware && "animate-spin",
+                              )}
+                            />
+                          </Button>
+                        </TooltipPrimitive.Trigger>
+                        <TooltipContent side="left" className="max-w-[200px] text-[11.5px]">
+                          Re-check VRAM after freeing GPU memory
+                        </TooltipContent>
+                      </TooltipPrimitive.Root>
+                    </TooltipPrimitive.Provider>
+                  </div>
+                  {/* Manual mode: layer slider */}
+                  {!autoOffload && hasGpu && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-[12px] text-muted-foreground">
+                          Layers on GPU
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <NumericValueInput
+                            value={
+                              isAllGpu
+                                ? (gpuLayersTotal ?? gpuSliderMax)
+                                : isAllCpu
+                                  ? 0
+                                  : effectiveGpuLayers
+                            }
+                            min={0}
+                            max={gpuSliderMax}
+                            step={1}
+                            onChange={setGpuLayersFromSlider}
+                            displayValue={
+                              isAllGpu
+                                ? "All GPU"
+                                : isAllCpu
+                                  ? "CPU only"
+                                  : undefined
+                            }
+                            ariaLabel="GPU layers"
+                            size={6}
+                          />
+                        </div>
+                      </div>
+                      <Slider
+                        min={0}
+                        max={gpuSliderMax}
+                        step={1}
+                        value={[
+                          isAllGpu
+                            ? gpuSliderMax
+                            : isAllCpu
+                              ? 0
+                              : Math.min(effectiveGpuLayers, gpuSliderMax),
+                        ]}
+                        onValueChange={([v]) =>
+                          setGpuLayersFromSlider(Math.round(v))
+                        }
+                        className="panel-slider"
+                        data-test-id="gpu-layers-slider"
+                      />
+                      <div className="flex justify-between text-[11px] text-muted-foreground">
+                        <span>0 (CPU only)</span>
+                        <span>{gpuSliderMax} (All GPU)</span>
+                      </div>
+                    </div>
+                  )}
+                  {/* Auto mode: show actual offload from status */}
+                  {autoOffload && modelLoaded && gpuLayersOffloaded != null && gpuLayersTotal != null && (
+                    <div className="text-[12px] text-muted-foreground">
+                      Auto: {gpuLayersOffloaded}/{gpuLayersTotal} layers on GPU
+                    </div>
+                  )}
+                  {/* No GPU detected message */}
+                  {!hasGpu && (
+                    <div className="rounded-lg bg-sky-500/[0.08] px-3 py-2 text-[12px] leading-[1.4] text-nav-fg/80">
+                      No GPU detected — model will run on CPU only.
+                    </div>
+                  )}
+                  {/* CPU offload warnings */}
+                  {hasGpu && modelLoaded && !autoOffload && isAllCpu && (
+                    <div className="rounded-lg bg-amber-500/[0.08] px-3 py-2 text-[12px] leading-[1.4] text-nav-fg/80">
+                      All layers on CPU — inference will be slow.
+                    </div>
+                  )}
+                  {hasGpu && modelLoaded && gpuLayersOffloaded != null && gpuLayersTotal != null && gpuLayersOffloaded < gpuLayersTotal && !isAllCpu && (
+                    <div className="rounded-lg bg-amber-500/[0.08] px-3 py-2 text-[12px] leading-[1.4] text-nav-fg/80">
+                      {gpuLayersTotal - gpuLayersOffloaded} of {gpuLayersTotal}{" "}
+                      layers on CPU — inference will be slower.
+                    </div>
+                  )}
                 </div>
               </>
             )}

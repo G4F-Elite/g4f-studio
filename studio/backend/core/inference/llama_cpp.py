@@ -128,13 +128,13 @@ _GPU_DEVICE_PREFIXES = (
 )
 
 
-def classify_gpu_offload_lines(lines: "list[str]") -> Optional[bool]:
-    """True if the model landed on a GPU, False if it stayed on CPU despite GPU
-    intent, None when the log has no usable signal."""
-    # Counted offload is authoritative, keyed on the model with the most layers.
-    # A separate MTP/draft model logs its own (much smaller) "offloaded N/M"
-    # line, so decide on the largest-M line: a drafter that fits on GPU must not
-    # mask a main model running on CPU. N>0 on that model is True, 0 is False.
+def _parse_gpu_offload_info(lines: "list[str]") -> "tuple[Optional[int], Optional[int]]":
+    """Extract (offloaded_layers, total_layers) from llama-server stdout.
+
+    Returns (None, None) when no \"offloaded N/M layers to GPU\" line is found.
+    Like classify_gpu_offload_lines, keys on the model with the most layers to
+    avoid a separate drafter's small count masking the main model.
+    """
     max_total = -1
     offloaded_at_max = 0
     for line in lines:
@@ -145,7 +145,20 @@ def classify_gpu_offload_lines(lines: "list[str]") -> Optional[bool]:
         if total > max_total or (total == max_total and offloaded > offloaded_at_max):
             max_total, offloaded_at_max = total, offloaded
     if max_total >= 0:
-        return offloaded_at_max > 0
+        return offloaded_at_max, max_total
+    return None, None
+
+
+def classify_gpu_offload_lines(lines: "list[str]") -> Optional[bool]:
+    """True if the model landed on a GPU, False if it stayed on CPU despite GPU
+    intent, None when the log has no usable signal."""
+    # Counted offload is authoritative, keyed on the model with the most layers.
+    # A separate MTP/draft model logs its own (much smaller) "offloaded N/M"
+    # line, so decide on the largest-M line: a drafter that fits on GPU must not
+    # mask a main model running on CPU. N>0 on that model is True, 0 is False.
+    offloaded, total = _parse_gpu_offload_info(lines)
+    if total is not None:
+        return offloaded > 0
 
     # GPU marker on a *model* buffer; _Host buffers are CPU-pinned, not offload.
     # Buffer lines are authoritative: present but none on a GPU means CPU-only,
@@ -1255,6 +1268,11 @@ class LlamaCppBackend:
         self._stats_logger = None  # vLLM-style engine-stats poller, set on load
         # Set by _classify_gpu_offload after _wait_for_health.
         self._gpu_offload_active: Optional[bool] = None
+        # Layer offload counts parsed from llama-server stdout.
+        self._gpu_layers_offloaded: Optional[int] = None
+        self._gpu_layers_total: Optional[int] = None
+        self._n_gpu_layers: Optional[int] = None
+        self._fully_gpu_offloaded: bool = False
         self._context_length: Optional[int] = None
         self._effective_context_length: Optional[int] = None
         self._max_context_length: Optional[int] = None
@@ -1634,6 +1652,26 @@ class LlamaCppBackend:
     def tensor_parallel(self) -> bool:
         """Whether --split-mode tensor is active on the loaded server."""
         return self._tensor_parallel
+
+    @property
+    def n_gpu_layers(self) -> Optional[int]:
+        """Requested GPU layer offload count (-1 = all, 0 = none, N = N layers, None = auto)."""
+        return self._n_gpu_layers
+
+    @property
+    def gpu_layers_offloaded(self) -> Optional[int]:
+        """Number of layers actually offloaded to GPU (from llama-server stdout)."""
+        return self._gpu_layers_offloaded
+
+    @property
+    def gpu_layers_total(self) -> Optional[int]:
+        """Total model layers (from llama-server stdout)."""
+        return self._gpu_layers_total
+
+    @property
+    def fully_gpu_offloaded(self) -> bool:
+        """Whether the entire model was offloaded to GPU."""
+        return self._fully_gpu_offloaded
 
     @property
     def speculative_type(self) -> Optional[str]:
@@ -2869,7 +2907,6 @@ class LlamaCppBackend:
         mtp_keeps_target_ctx: bool = True,
     ) -> Optional[int]:
         """MTP draft reserve at ``n_ctx`` = draft KV (grows with ctx) + separate-
-<<<<<<< HEAD
         drafter weights + (MTP + MLA only) a duplicated target KV context. The
         verify buffer rides in the ctx-fit headroom (no tuned constant). None when
         the draft KV can't be sized (caller keeps the flat fallback).
@@ -2877,12 +2914,6 @@ class LlamaCppBackend:
         ``mtp_keeps_target_ctx`` is True for MTP draft modes (which keep the
         duplicated target context) and False for separate-drafter spec modes
         (draft-simple/draft-eagle3), which do not."""
-=======
-        drafter weights + (MLA only) a duplicated target KV context. The verify
-        buffer rides in the ctx-fit headroom (no tuned constant). None when the
-        draft KV can't be sized (caller keeps the flat fallback).
-        ``draft_weights_bytes`` is the drafter file size (0 for embedded)."""
->>>>>>> 33e44f5a2 (Merge branch 'main' into feat/pr6370-prompt-vars-ux)
         draft_kv = self._mtp_draft_kv_bytes(
             n_ctx,
             drafter_path = drafter_path,
@@ -2891,18 +2922,12 @@ class LlamaCppBackend:
             n_parallel = n_parallel,
         )
         weights = max(0, draft_weights_bytes)
-<<<<<<< HEAD
         # MLA models (GLM-5.x, DeepSeek, Kimi-K2) under MTP keep a *second* full copy
         # of the target model's KV context for draft verification -- llama.cpp's
-=======
-        # MLA models (GLM-5.x, DeepSeek, Kimi-K2) keep a *second* full copy of the
-        # target model's KV context for MTP draft verification -- llama.cpp's
->>>>>>> 33e44f5a2 (Merge branch 'main' into feat/pr6370-prompt-vars-ux)
         # `ctx_tgt=yes` -- allocated at f16 regardless of the main cache type. It is
         # ~the main KV again and dwarfs the embedded draft head (GLM-5.2 @ 1M ctx:
         # a ~2 GiB head next to a ~89 GiB target copy), so omitting it lets auto-fit
         # pick a context that fits on paper but OOMs cublasCreate at the first
-<<<<<<< HEAD
         # decode. Gated on both MLA (kv_lora_rank present) and the engaged mode
         # actually being MTP: non-MLA MTP (Qwen/Gemma) keeps no such copy, and the
         # separate-drafter spec modes (draft-simple/draft-eagle3) load a small
@@ -2910,12 +2935,6 @@ class LlamaCppBackend:
         # rather than duplicating the target, so they must not be charged for it.
         target_ctx_copy = 0
         if mtp_keeps_target_ctx and self._kv_lora_rank is not None:
-=======
-        # decode. Non-MLA MTP (Qwen/Gemma) keeps no such copy, so this is gated
-        # strictly on MLA (kv_lora_rank present) and leaves those models unchanged.
-        target_ctx_copy = 0
-        if self._kv_lora_rank is not None:
->>>>>>> 33e44f5a2 (Merge branch 'main' into feat/pr6370-prompt-vars-ux)
             target_ctx_copy = self._estimate_kv_cache_bytes(n_ctx, "f16", n_parallel = n_parallel)
         if draft_kv is None:
             # KV unsized (exotic/remote drafter): still reserve known weights + any
@@ -4544,6 +4563,7 @@ class LlamaCppBackend:
                 speculative_type = speculative_type,
                 spec_draft_n_max = spec_draft_n_max,
                 tensor_parallel = tensor_parallel,
+                n_gpu_layers = n_gpu_layers,
                 chat_template_override = chat_template_override,
                 extra_args = extra_args,
                 is_vision = is_vision,
@@ -4913,7 +4933,6 @@ class LlamaCppBackend:
                         except Exception:
                             _mtp_binary_ok = False
                             _mtp_probe_raised = True
-<<<<<<< HEAD
                     _auto_studio_mtp = (
                         not _extra_args_set_spec_type(extra_args)
                         and _mtp_model_for_fit
@@ -4927,25 +4946,6 @@ class LlamaCppBackend:
                             # _build_speculative_flags and may still engage MTP (embedded
                             # head or separate drafter -- _mtp_model_for_fit covers both).
                             or _mtp_probe_raised
-=======
-                    _mtp_will_engage = bool(
-                        _user_mtp_via_extras
-                        or _user_draft_via_extras
-                        or (
-                            not _extra_args_set_spec_type(extra_args)
-                            and _mtp_model_for_fit
-                            and (
-                                _mtp_effective in ("mtp", "mtp+ngram")
-                                or (_mtp_effective == "auto" and not _mtp_sub_3b_for_fit)
-                            )
-                            and (
-                                _mtp_binary_ok
-                                # Reserve on a raised (uncached) probe too: it re-probes in
-                                # _build_speculative_flags and may still engage MTP (embedded
-                                # head or separate drafter -- _mtp_model_for_fit covers both).
-                                or _mtp_probe_raised
-                            )
->>>>>>> 33e44f5a2 (Merge branch 'main' into feat/pr6370-prompt-vars-ux)
                         )
                     )
                     _mtp_will_engage = bool(
@@ -5496,7 +5496,12 @@ class LlamaCppBackend:
                 ]
 
                 fully_gpu_offloaded = False
-                if use_fit:
+                if n_gpu_layers is not None:
+                    # Explicit NGL requested by user: -1 = all GPU, 0 = all CPU, N = N layers
+                    cmd.extend(["-ngl", str(n_gpu_layers)])
+                    fully_gpu_offloaded = (n_gpu_layers == -1)
+                    use_fit = False  # Explicit -ngl disables auto-fit
+                elif use_fit:
                     cmd.extend(["--fit", "on"])
                 elif gpu_indices is not None:
                     # Fits on selected GPU(s) -- offload all layers
@@ -5780,7 +5785,8 @@ class LlamaCppBackend:
                 # Pin to selected GPU(s). On ROCm, narrowing only
                 # CUDA_VISIBLE_DEVICES leaves an AMD child seeing the full
                 # set, so set HIP_VISIBLE_DEVICES too.
-                if gpu_indices is not None:
+                # Skip when the user explicitly requested CPU-only (n_gpu_layers=0).
+                if gpu_indices is not None and n_gpu_layers != 0:
                     pinned = ",".join(str(i) for i in gpu_indices)
                     env["CUDA_VISIBLE_DEVICES"] = pinned
                     try:
@@ -6137,9 +6143,14 @@ class LlamaCppBackend:
                 self._start_mtp_crash_watchdog()
 
                 # Catch silent CPU fallback when GPU was intended (#5106).
+                self._fully_gpu_offloaded = fully_gpu_offloaded
+                self._n_gpu_layers = n_gpu_layers
                 self._gpu_offload_active = self._classify_gpu_offload(
                     gpu_indices is not None or use_fit, gpus or []
                 )
+                offloaded, total = _parse_gpu_offload_info(self._stdout_lines)
+                self._gpu_layers_offloaded = offloaded
+                self._gpu_layers_total = total
                 if self._gpu_offload_active is False:
                     logger.warning(
                         "llama-server appears to have loaded the model entirely "
@@ -6547,6 +6558,7 @@ class LlamaCppBackend:
         gguf_path: Optional[str] = None,
         spec_draft_n_max: Optional[int] = None,
         tensor_parallel: bool = False,
+        n_gpu_layers: Optional[int] = None,
         mtp_draft_path: Optional[str] = None,
     ) -> bool:
         """True iff the live server already satisfies these load kwargs.
@@ -6589,6 +6601,10 @@ class LlamaCppBackend:
         # the child env, so the env must not force an endless reload of a healthy
         # server. An identical request would downgrade the same way.
         if not _tensor_parallel_matches_loaded(extra_args, tensor_parallel, self._tensor_parallel):
+            return False
+
+        # Explicit NGL change requires a reload. None = "no opinion" (auto-fit).
+        if n_gpu_layers != self._n_gpu_layers:
             return False
 
         # Compare on the canonical requested mode. With --spec-type in
@@ -6704,6 +6720,11 @@ class LlamaCppBackend:
             self._speculative_type = None
             self._requested_spec_mode = None
             self._spec_draft_n_max = None
+            self._gpu_offload_active = None
+            self._gpu_layers_offloaded = None
+            self._gpu_layers_total = None
+            self._n_gpu_layers = None
+            self._fully_gpu_offloaded = False
             self._n_layers = None
             self._n_kv_heads = None
             self._n_kv_heads_by_layer = None

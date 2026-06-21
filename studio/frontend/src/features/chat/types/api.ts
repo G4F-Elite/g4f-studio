@@ -63,6 +63,11 @@ export interface LoadModelRequest {
    * of by layer for GGUF models. Multi-GPU only; no effect on a single GPU.
    */
   tensor_parallel?: boolean | null;
+  /**
+   * Number of layers to offload to GPU. -1 = all GPU, 0 = all CPU (no GPU),
+   * N = N layers, undefined/null = auto (let the backend decide).
+   */
+  n_gpu_layers?: number | null;
 }
 
 export interface ValidateModelResponse {
@@ -149,6 +154,8 @@ export interface LoadModelResponse {
   spec_draft_n_max?: number | null;
   /** Whether tensor-parallel split (--split-mode tensor) is active. */
   tensor_parallel?: boolean;
+  /** Number of layers requested for GPU offload (echoes the request). */
+  n_gpu_layers?: number | null;
 }
 
 export interface UnloadModelRequest {
@@ -193,6 +200,14 @@ export interface InferenceStatusResponse {
   spec_draft_n_max?: number | null;
   /** Whether tensor-parallel split (--split-mode tensor) is active. */
   tensor_parallel?: boolean;
+  /** Number of layers requested for GPU offload (mirrors LoadModelRequest.n_gpu_layers). */
+  n_gpu_layers?: number | null;
+  /** Actual number of layers offloaded to GPU (reported by llama-server). */
+  gpu_layers_offloaded?: number;
+  /** Total number of layers in the loaded model. */
+  gpu_layers_total?: number;
+  /** True when all layers are on GPU (gpu_layers_offloaded >= gpu_layers_total). */
+  fully_gpu_offloaded?: boolean;
   /**
    * Why MTP was disabled on the loaded model despite being requested.
    * "binary_no_mtp" / "binary_outdated" -> updating llama.cpp would re-enable

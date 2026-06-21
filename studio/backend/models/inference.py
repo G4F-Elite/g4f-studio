@@ -110,6 +110,10 @@ class LoadRequest(BaseModel):
             "non-GGUF models."
         ),
     )
+    n_gpu_layers: Optional[int] = Field(
+        None,
+        description = "GPU layers to offload (-1 = all GPU, 0 = all CPU, N = N layers on GPU, None = auto-fit)",
+    )
 
 
 class UnloadRequest(BaseModel):
@@ -397,6 +401,22 @@ class InferenceStatusResponse(BaseModel):
     tensor_parallel: bool = Field(
         False,
         description = "Whether tensor-parallel split (--split-mode tensor) is active.",
+    )
+    n_gpu_layers: Optional[int] = Field(
+        None,
+        description = "Requested GPU layer offload count (-1 = all, 0 = none, N = N layers, None = auto)",
+    )
+    gpu_layers_offloaded: Optional[int] = Field(
+        None,
+        description = "Number of layers actually offloaded to GPU (from llama-server stdout)",
+    )
+    gpu_layers_total: Optional[int] = Field(
+        None,
+        description = "Total model layers (from llama-server stdout)",
+    )
+    fully_gpu_offloaded: bool = Field(
+        False,
+        description = "Whether the entire model was offloaded to GPU",
     )
     llama_cpp_supports_mtp: bool = Field(
         True,

@@ -22,6 +22,7 @@ import {
   loadChatSettingsWithLegacyImport,
   savePersistedChatSettingsPatch,
 } from "../utils/chat-settings-storage";
+import type { ModelLoadingSettings } from "../api/chat-settings-api";
 
 const HF_TOKEN_KEY = "unsloth_hf_token";
 const HF_TOKEN_CHANGED_EVENT = "unsloth:hf-token-changed";
@@ -202,6 +203,7 @@ let hasShownSettingsPersistenceWarning = false;
 let customPresetsMutationVersion = 0;
 let activePresetMutationVersion = 0;
 let activePresetSourceMutationVersion = 0;
+let modelLoadingMutationVersion = 0;
 let settingsHydrationPromise: Promise<void> | null = null;
 
 function warnSettingsPersistenceFailure(): void {
@@ -264,6 +266,28 @@ function saveSettingsPatch(patch: SettingsPatch): void {
       .catch(() => undefined)
       .then(() => flushSettingsPatch());
   }, SETTINGS_DEBOUNCE_MS);
+}
+
+/** Build a ModelLoadingSettings blob from the current runtime store state. */
+function buildModelLoadingSettings(
+  s: ChatRuntimeStore,
+): ModelLoadingSettings {
+  return {
+    kvCacheDtype: s.kvCacheDtype,
+    tensorParallel: s.tensorParallel,
+    speculativeType: s.speculativeType,
+    specDraftNMax: s.specDraftNMax,
+    customContextLength: s.customContextLength,
+    chatTemplateOverride: s.chatTemplateOverride,
+    gpuLayers: s.gpuLayers,
+    autoOffload: s.autoOffload,
+  };
+}
+
+/** Bump the modelLoading mutation version and enqueue a debounced save. */
+function persistModelLoading(s: ChatRuntimeStore): void {
+  modelLoadingMutationVersion += 1;
+  saveSettingsPatch({ modelLoading: buildModelLoadingSettings(s) });
 }
 
 // Best-effort flush of any pending patch on tab close. keepalive lets the PUT
@@ -586,6 +610,14 @@ type ChatRuntimeStore = {
   tensorParallel: boolean;
   /** Backend-reported tensor-parallel state; null until first hydrated. */
   loadedTensorParallel: boolean | null;
+  /** Number of layers to offload to GPU. null = auto. -1 = all GPU, 0 = all CPU, N = N layers. */
+  gpuLayers: number | null;
+  /** Backend-reported or persisted GPU layers value; null until first hydrated. */
+  loadedGpuLayers: number | null;
+  /** When true, the backend decides GPU offload automatically (n_gpu_layers omitted from request). */
+  autoOffload: boolean;
+  /** The auto-offload state as of the last load/persistence hydration. */
+  loadedAutoOffload: boolean;
   /** Persisted: when false, picking a local model stages it as
    *  `pendingSelection` (and opens settings) instead of loading immediately,
    *  so load settings can be set before the single load. */
@@ -702,6 +734,8 @@ type ChatRuntimeStore = {
    *  don't leak onto the next. */
   resetModelSettingsToLoaded: () => void;
   setTensorParallel: (value: boolean) => void;
+  setGpuLayers: (value: number | null) => void;
+  setAutoOffload: (value: boolean) => void;
   setLoadOnSelection: (value: boolean) => void;
   setPendingSelection: (selection: PendingModelSelection | null) => void;
   /** Stage a pick for a deferred load: revert knobs to the loaded baseline,
@@ -748,6 +782,7 @@ type SettingsHydrationVersions = {
   inferenceParams: Record<PersistedInferenceParamKey, number>;
   scalarSettings: Record<ScalarSettingKey, number>;
   presets: PresetHydrationVersions;
+  modelLoading: number;
 };
 
 const PERSISTED_INFERENCE_PARAM_KEYS = [
@@ -795,6 +830,7 @@ function getSettingsHydrationVersions(): SettingsHydrationVersions {
       activePreset: activePresetMutationVersion,
       activePresetSource: activePresetSourceMutationVersion,
     },
+    modelLoading: modelLoadingMutationVersion,
   };
 }
 
@@ -895,6 +931,32 @@ function getHydratedSettingsState(
       (nextState as Record<ScalarSettingKey, unknown>)[key] = value;
     }
   }
+  // Hydrate model loading knobs from persisted settings if the user hasn't
+  // changed any knob since the last save (version gate avoids clobbering
+  // concurrent edits from another tab or a pre-hydrate user interaction).
+  if (
+    settings.modelLoading &&
+    modelLoadingMutationVersion === versions.modelLoading
+  ) {
+    const ml = settings.modelLoading;
+    nextState.kvCacheDtype = ml.kvCacheDtype;
+    nextState.tensorParallel = ml.tensorParallel;
+    nextState.speculativeType = ml.speculativeType;
+    nextState.specDraftNMax = ml.specDraftNMax;
+    nextState.customContextLength = ml.customContextLength;
+    nextState.chatTemplateOverride = ml.chatTemplateOverride;
+    nextState.gpuLayers = ml.gpuLayers;
+    nextState.loadedGpuLayers = ml.gpuLayers;
+    nextState.autoOffload = ml.autoOffload;
+    nextState.loadedAutoOffload = ml.autoOffload;
+    // Loaded twins for the existing knobs mirror the hydrated values so
+    // the sticky "revert to loaded" baseline reflects persistence.
+    nextState.loadedKvCacheDtype = ml.kvCacheDtype;
+    nextState.loadedTensorParallel = ml.tensorParallel;
+    nextState.loadedSpeculativeType = ml.speculativeType;
+    nextState.loadedSpecDraftNMax = ml.specDraftNMax;
+    nextState.loadedChatTemplateOverride = ml.chatTemplateOverride;
+  }
   return nextState;
 }
 
@@ -924,6 +986,8 @@ function loadedBaselineSettings(s: ChatRuntimeStore) {
       : readPersistedSpeculativeType(),
     specDraftNMax: hasLoadedModel ? s.loadedSpecDraftNMax : null,
     chatTemplateOverride: s.loadedChatTemplateOverride,
+    gpuLayers: s.loadedGpuLayers,
+    autoOffload: s.loadedAutoOffload,
   };
 }
 
@@ -1013,6 +1077,10 @@ export const useChatRuntimeStore = create<ChatRuntimeStore>((set, get) => ({
   loadedSpecDraftNMax: null,
   tensorParallel: false,
   loadedTensorParallel: null,
+  gpuLayers: null,
+  loadedGpuLayers: null,
+  autoOffload: true,
+  loadedAutoOffload: true,
   loadOnSelection: loadBool(CHAT_LOAD_ON_SELECTION_KEY, true),
   pendingSelection: null,
   loadedIsMultimodal: false,
@@ -1251,6 +1319,10 @@ export const useChatRuntimeStore = create<ChatRuntimeStore>((set, get) => ({
       loadedSpecDraftNMax: null,
       tensorParallel: false,
       loadedTensorParallel: null,
+      gpuLayers: null,
+      loadedGpuLayers: null,
+      autoOffload: true,
+      loadedAutoOffload: true,
       loadedIsMultimodal: false,
       loadedIsDiffusion: false,
       customContextLength: null,
@@ -1445,11 +1517,37 @@ export const useChatRuntimeStore = create<ChatRuntimeStore>((set, get) => ({
       );
       return { toolCallTimeout };
     }),
-  setKvCacheDtype: (kvCacheDtype) => set({ kvCacheDtype }),
-  setSpeculativeType: (speculativeType) => set({ speculativeType }),
-  setSpecDraftNMax: (specDraftNMax) => set({ specDraftNMax }),
-  setTensorParallel: (tensorParallel) => set({ tensorParallel }),
+  setKvCacheDtype: (kvCacheDtype) =>
+    set((s) => {
+      persistModelLoading({ ...s, kvCacheDtype });
+      return { kvCacheDtype };
+    }),
+  setSpeculativeType: (speculativeType) =>
+    set((s) => {
+      persistModelLoading({ ...s, speculativeType });
+      return { speculativeType };
+    }),
+  setSpecDraftNMax: (specDraftNMax) =>
+    set((s) => {
+      persistModelLoading({ ...s, specDraftNMax });
+      return { specDraftNMax };
+    }),
+  setTensorParallel: (tensorParallel) =>
+    set((s) => {
+      persistModelLoading({ ...s, tensorParallel });
+      return { tensorParallel };
+    }),
   resetModelSettingsToLoaded: () => set((s) => loadedBaselineSettings(s)),
+  setGpuLayers: (gpuLayers) =>
+    set((s) => {
+      persistModelLoading({ ...s, gpuLayers });
+      return { gpuLayers };
+    }),
+  setAutoOffload: (autoOffload) =>
+    set((s) => {
+      persistModelLoading({ ...s, autoOffload });
+      return { autoOffload };
+    }),
   setLoadOnSelection: (loadOnSelection) => {
     saveBool(CHAT_LOAD_ON_SELECTION_KEY, loadOnSelection);
     set({ loadOnSelection });
@@ -1486,9 +1584,16 @@ export const useChatRuntimeStore = create<ChatRuntimeStore>((set, get) => ({
     cancelStagedModelDownload(pendingSelection);
     set((s) => ({ ...loadedBaselineSettings(s), pendingSelection: null }));
   },
-  setCustomContextLength: (customContextLength) => set({ customContextLength }),
+  setCustomContextLength: (customContextLength) =>
+    set((s) => {
+      persistModelLoading({ ...s, customContextLength });
+      return { customContextLength };
+    }),
   setChatTemplateOverride: (chatTemplateOverride) =>
-    set({ chatTemplateOverride }),
+    set((s) => {
+      persistModelLoading({ ...s, chatTemplateOverride });
+      return { chatTemplateOverride };
+    }),
   setPendingAudio: (base64, name) =>
     set({ pendingAudioBase64: base64, pendingAudioName: name }),
   clearPendingAudio: () =>
